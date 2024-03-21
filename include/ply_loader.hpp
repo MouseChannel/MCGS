@@ -2,7 +2,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
-
+#include "Wrapper/Semaphore.hpp"
 namespace MCGS
 {
     std::vector<std::vector<float>> load_ply(std::string ply_path);

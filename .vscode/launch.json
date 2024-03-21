@@ -6,7 +6,7 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/build/MCGS",
-            "externalConsole" : true,
+         
         },
         {
             "type": "lldb",

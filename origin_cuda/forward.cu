@@ -225,20 +225,20 @@ __global__ void preprocessCUDA(int P,
     float4 p_hom = transformPoint4x4(p_orig, projmatrix);
     float p_w = 1.0f / (p_hom.w + 0.0000001f);
     float3 p_proj = { p_hom.x * p_w, p_hom.y * p_w, p_hom.z * p_w };
-    if (idx == 1) {
+    // if (idx == 1) {
 
-        for (int i = 0; i < 16; i++) {
-            printf("in2 %f \n", projmatrix[i]);
-        }
-        float tt = projmatrix[1] * p_orig.x;
-        float tt2 = projmatrix[5] * p_orig.y;
-        float tt3 = projmatrix[9] * p_orig.z;
-        float tt4 = projmatrix[13];
-        // + projmatrix[5] * p_orig.y + projmatrix[9] * p_orig.z + projmatrix[13];
-        printf("herehere %f %f %f %f\n", tt,tt2,tt3,tt4);
-        printf("incudaasf  %f %f %f \n ", p_orig.x, p_orig.y, p_orig.z);
-        printf("incudaasf  %f %f %f %f \n ", p_hom.x, p_hom.y, p_hom.z, p_hom.w);
-    }
+    //     for (int i = 0; i < 16; i++) {
+    //         printf("in2 %f \n", projmatrix[i]);
+    //     }
+    //     float tt = projmatrix[1] * p_orig.x;
+    //     float tt2 = projmatrix[5] * p_orig.y;
+    //     float tt3 = projmatrix[9] * p_orig.z;
+    //     float tt4 = projmatrix[13];
+    //     // + projmatrix[5] * p_orig.y + projmatrix[9] * p_orig.z + projmatrix[13];
+    //     printf("herehere %f %f %f %f\n", tt,tt2,tt3,tt4);
+    //     printf("incudaasf  %f %f %f \n ", p_orig.x, p_orig.y, p_orig.z);
+    //     printf("incudaasf  %f %f %f %f \n ", p_hom.x, p_hom.y, p_hom.z, p_hom.w);
+    // }
 
     // If 3D covariance matrix is precomputed, use it, otherwise compute
     // from scaling and rotation parameters.

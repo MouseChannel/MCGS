@@ -107,7 +107,7 @@ RasterizeGaussiansCUDA(
 int main()
 {
 
-    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/point_cloud.ply");
+    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/assets/point_cloud.ply");
 
     auto background = torch::tensor({ 0., 0., 0. });
 
