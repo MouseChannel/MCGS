@@ -1,4 +1,4 @@
-#include "example/raster/raster_pbr_context.hpp"
+#include "raster_pbr_context.hpp"
 #include "Helper/Camera.hpp"
 #include "Helper/CommandManager.hpp"
 #include "Helper/DescriptorManager.hpp"
@@ -6,6 +6,7 @@
 #include "Helper/Model_Loader/gltf_loader.hpp"
 #include "Rendering/ComputePass.hpp"
 #include "Rendering/GraphicPass.hpp"
+
 #include "Rendering/Model.hpp"
 #include "Rendering/RaytracingPass.hpp"
 #include "Wrapper/DescriptorSet.hpp"
@@ -26,10 +27,11 @@
 
 #include "Rendering/AntiAliasing/TAA/TAA_Manager.hpp"
 #include "Rendering/PBR/IBL_Manager.hpp"
+#include "gaussian_manager.hpp"
 #include <Helper/Model_Loader/ImageWriter.hpp>
 #include <execution>
 namespace MCRT {
-std::unique_ptr<Context> Context::_instance{ new MCRT::raster_context_pbr };
+std::unique_ptr<Context> Context::_instance { new MCRT::raster_context_pbr };
 float raster_context_pbr::light_pos_x = 0, raster_context_pbr::light_pos_y = 0, raster_context_pbr::light_pos_z = 5, raster_context_pbr::gamma = 2.2f;
 bool raster_context_pbr::use_normal_map = false, raster_context_pbr::use_r_rm_map = false, raster_context_pbr::use_ao = false;
 int irradiance_size = 512;
@@ -37,20 +39,18 @@ int irradiance_size = 512;
 raster_context_pbr::raster_context_pbr()
 {
 
-    std::vector<int> a{ 1, 2, 3, 4, 5, 6 };
-    std::for_each(std::execution::par,a.begin(),
-                  a.end(),
-                  [](auto& it) {
-                      std::cout << it << std::endl;
-                  });
-    int dd = 0;
-
+    // std::vector<int> a{ 1, 2, 3, 4, 5, 6 };
+    // std::for_each(std::execution::par,a.begin(),
+    //               a.end(),
+    //               [](auto& it) {
+    //                   std::cout << it << std::endl;
+    //               });
+    // int dd = 0;
 }
 
 raster_context_pbr::~raster_context_pbr()
 {
 }
-
 
 void raster_context_pbr::prepare(std::shared_ptr<Window> window)
 {
@@ -64,12 +64,29 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     // Obj_loader::load_model("/home/mocheng/project/MCRT/assets/untitled.obj");
     IBLManager::Get_Singleton()->Init(sky_box);
     // NoiseManager::Get_Singleton()->InitPerlinNoise();
+    MCGS::GaussianManager::Get_Singleton()->Init();
+    PASS.resize(2);
+    // {
+    //     PASS[Pass_index::Compute] = std::shared_ptr<ComputePass> {
+    //         new ComputePass
+    //     };
+    //     Context::Get_Singleton()->get_compute_context()->set_constants_size(10);
+    //     auto compute_context = std::reinterpret_pointer_cast<GraphicPass>(PASS[Compute]);
+    //     if (compute_context == nullptr) {
+    //         throw std::runtime_error("not graphic context");
+    //     }
+    //     std::shared_ptr<ShaderModule> compute_shader_module;
+    //     compute_shader_module.reset(new ShaderModule("/home/mocheng/project/MCGS/App/shaders/Gaussian_Splatting.comp.spv"));
 
-    PASS.resize(1);
-
+    //     compute_context->prepare();
+    //     // compute_context->prepare_descriptorset([&]() {
+    //     //     auto descriptor_manager = compute_context->get_descriptor_manager();
+    //     //     descriptor_manager->Make_DescriptorSet(std::shared_ptr<T> data, Which_Set which_set, int binding_index, vk::DescriptorType type, vk::ShaderStageFlags shader_stage)
+    //     // });
+    // }
     {
 
-        PASS[Pass_index::Graphic] = std::shared_ptr<GraphicPass>{ new GraphicPass(m_device) };
+        PASS[Pass_index::Graphic] = std::shared_ptr<GraphicPass> { new GraphicPass(m_device) };
         Context::Get_Singleton()
             ->get_graphic_context()
             ->set_constants_size(sizeof(PC_Raster));
@@ -110,7 +127,7 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
 
             descriptor_manager
                 ->Make_DescriptorSet(
-                    std::vector{ IBLManager::Get_Singleton()->get_LUT() },
+                    std::vector { IBLManager::Get_Singleton()->get_LUT() },
                     DescriptorManager::Graphic,
                     (int)Graphic_Binding::e_LUT_image,
                     vk::DescriptorType::eCombinedImageSampler,
@@ -118,7 +135,7 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
 
             descriptor_manager
                 ->Make_DescriptorSet(
-                    std::vector{ IBLManager::Get_Singleton()->get_irradiance()->get_handle() },
+                    std::vector { IBLManager::Get_Singleton()->get_irradiance()->get_handle() },
                     DescriptorManager::Graphic,
                     (int)Graphic_Binding::e_irradiance_image,
                     vk::DescriptorType::eCombinedImageSampler,
@@ -135,31 +152,20 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
         // ImageWriter::WriteImage(IBLManager::Get_Singleton()->get_LUT());
         // ImageWriter::WriteCubemap(IBLManager::Get_Singleton()->get_irradiance()->get_handle());
     }
-    {
-        // test
-        //        TAA_Manager::Get_Singleton()->Init(get_graphic_context()
-        //                                               ->get_present_render_target()
-        //                                               //                                               ->get_gbuffer_target()
-        //                                               ->Get_Image());
-    }
 }
-
 
 std::shared_ptr<CommandBuffer> raster_context_pbr::Begin_Frame()
 {
-    //    TAA_Manager::Get_Singleton()->TAA_Pass(get_graphic_context()->get_present_render_target()->Get_Image(),
-    //                                           get_graphic_context()->get_depth_render_target()->Get_Image(),
-    //                                           get_graphic_context()->get_gbuffer_target()->Get_Image());
 
     CommandManager::ExecuteCmd(Context::Get_Singleton()
-                               ->get_device()
-                               ->Get_Graphic_queue(),
+                                   ->get_device()
+                                   ->Get_Graphic_queue(),
                                [&](vk::CommandBuffer& cmd) {
                                    cmd.updateBuffer<Camera_matrix>(camera_matrix->buffer->get_handle(),
                                                                    0,
-                                                                   Camera_matrix{
-                                                                       .view{ m_camera->Get_v_matrix() },
-                                                                       .project{ m_camera->Get_p_matrix() } });
+                                                                   Camera_matrix {
+                                                                       .view { m_camera->Get_v_matrix() },
+                                                                       .project { m_camera->Get_p_matrix() } });
                                });
     return raster_context::Begin_Frame();
 }
@@ -178,8 +184,8 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
     {
 
         auto res = Context::Get_Singleton()
-                   ->get_camera()
-                   ->Get_v_matrix();
+                       ->get_camera()
+                       ->Get_v_matrix();
         res[3] = { 0, 0, 0, 1 };
         SkyboxPass(cmd,
                    render_context,
@@ -189,8 +195,8 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
 
         {
             cmd->get_handle()
-               .bindPipeline(vk::PipelineBindPoint::eGraphics,
-                             render_context->get_pipeline()->get_handle());
+                .bindPipeline(vk::PipelineBindPoint::eGraphics,
+                              render_context->get_pipeline()->get_handle());
             render_context->record_command(cmd);
 
             for (auto& mesh : Mesh::meshs) {
@@ -213,14 +219,14 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
                 m[3][3] = 1;
                 auto pos = mesh->get_pos();
                 m[3] = glm::vec4(pos, 1);
-                
-                // use_r_rm_map = !use_r_rm_map;
-                pc = PC_Raster{
-                    .model_matrix{ m },
 
-                    .view_matrix{ Context::Get_Singleton()
-                                  ->get_camera()
-                                  ->Get_v_matrix() },
+                // use_r_rm_map = !use_r_rm_map;
+                pc = PC_Raster {
+                    .model_matrix { m },
+
+                    .view_matrix { Context::Get_Singleton()
+                                       ->get_camera()
+                                       ->Get_v_matrix() },
 
                     .camera_pos = glm::vec4(m_camera->get_pos(), 1),
                     .color_texture_index = mesh->m_material.color_texture_index,
@@ -235,32 +241,22 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
                 // angle++;
 
                 cmd->get_handle()
-                   .pushConstants<PC_Raster>(
-                       render_context
-                       ->get_pipeline()
-                       ->get_layout(),
-                       vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-                       0,
-                       pc);
+                    .pushConstants<PC_Raster>(
+                        render_context
+                            ->get_pipeline()
+                            ->get_layout(),
+                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                        0,
+                        pc);
                 cmd->get_handle()
-                   .drawIndexed(mesh->get_vertex_count(),
-                                1,
-                                0,
-                                0,
-                                0);
+                    .drawIndexed(mesh->get_vertex_count(),
+                                 1,
+                                 0,
+                                 0,
+                                 0);
             }
         }
     }
-
-    //    TAA_Manager::Get_Singleton()->TAA_Pass(get_graphic_context()
-    //                                               ->get_present_render_target()
-    //                                               ->Get_Image(),
-    //                                           get_graphic_context()
-    //                                               ->get_depth_render_target()
-    //                                               ->Get_Image(),
-    //                                           get_graphic_context()
-    //                                               ->get_gbuffer_target()
-    //                                               ->Get_Image());
 
     return cmd;
 }

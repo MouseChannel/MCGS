@@ -6,13 +6,20 @@
             "type": "cuda-gdb",
             "request": "launch",
             "program": "${workspaceFolder}/build/MCGS",
-         
         },
         {
             "type": "lldb",
             "request": "launch",
             "name": "Launch",
-            "program": "${workspaceFolder}/build/MCGS",
+            "program": "${workspaceFolder}/build/App/MCGS",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "origin",
+            "program": "${workspaceFolder}/build/ORIGIN_TEST",
             "args": [],
             "cwd": "${workspaceFolder}"
         },

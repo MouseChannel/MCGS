@@ -5,6 +5,7 @@
 #include "torch/utils.h"
 #include <cstring>
 #include <fstream>
+#include <glm/glm.hpp>
 #include <iostream>
 // #include <opencv2/opencv.hpp>
 #include <vector>
@@ -112,6 +113,11 @@ int main()
     auto background = torch::tensor({ 0., 0., 0. });
 
     auto xyz = MCGS::get_xyz(gs_data);
+
+    std::vector<glm::vec3> xyz_3 {
+        xyz.begin(),
+        xyz.end() - 3
+    };
     auto scale_d = MCGS::get_scale(gs_data);
     auto dc_012 = MCGS::get_dc_012(gs_data);
     auto dc_rest = MCGS::get_dc_rest(gs_data);
