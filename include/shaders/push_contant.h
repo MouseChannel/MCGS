@@ -57,17 +57,13 @@ struct GS_Address {
     uint64_t tiles_touched_address;
     uint64_t point_offsets_address;
 };
-// struct GeometryState {
-//     uint64_t scan_size;
-//     uint64_t depths;
-//     uint64_t scanning_space;
-//     uint64_t clamped;
-//     uint64_t internal_radii;
-//     uint64_t means2D;
-//     uint64_t cov3D;
-//     uint64_t conic_opacity;
-//     uint64_t rgb;
-//     uint64_t point_offsets;
-//     uint64_t tiles_touched;
-
+// struct PushContant_Sort {
+//     uint g_num_elements;
+//     uint g_shift;
+//     uint g_num_workgroups;
+//     uint g_num_blocks_per_workgroup;
 // };
+
+struct PushContant_Sort {
+    uint g_num_elements;
+};
