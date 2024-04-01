@@ -28,6 +28,8 @@
 #include "Rendering/AntiAliasing/TAA/TAA_Manager.hpp"
 #include "Rendering/PBR/IBL_Manager.hpp"
 #include "gaussian_manager.hpp"
+#include "sort_pass.hpp"
+#include "sum_pass.hpp"
 #include <Helper/Model_Loader/ImageWriter.hpp>
 #include <execution>
 namespace MCRT {
@@ -65,6 +67,18 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     IBLManager::Get_Singleton()->Init(sky_box);
     // NoiseManager::Get_Singleton()->InitPerlinNoise();
     MCGS::GaussianManager::Get_Singleton()->Init();
+    // std::shared_ptr<MCGS::SortPass> sort_pass;
+    // sort_pass.reset(new MCGS::SortPass);
+    // sort_pass->Init();
+    // sort_pass->Execute();
+
+    // std::shared_ptr<MCGS::SumPass> sum_pass;
+    // sum_pass.reset(new MCGS::SumPass);
+    // sum_pass->Init();
+    // sum_pass->Execute();
+
+    // MCGS::SortPass::Get_Singleton()->execute();
+
     PASS.resize(2);
     // {
     //     PASS[Pass_index::Compute] = std::shared_ptr<ComputePass> {

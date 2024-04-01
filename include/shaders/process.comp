@@ -5,6 +5,8 @@
 
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_buffer_reference2 : require
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
 
 #extension GL_EXT_debug_printf : enable
 #include "./push_contant.h"
@@ -114,26 +116,33 @@ layout(binding = eAddress, scalar)
     uint64_t tiles_touched_address;
     uint64_t point_offsets_address;
 };
-layout(set = 0, binding = render_out_index, rgba8) uniform writeonly image2D out_img;
+// layout(set = 0, binding = render_out_index, rgba8) uniform writeonly image2D out_img;
 
 layout(push_constant) uniform _PushContant
 {
     PushContant_GS gs_camera;
 };
-// bool in_frustum(int idx, float[] orig_points, mat4 viewmatrix, mat4 projmatrix, bool prefiltered, vec3 p_view  ){
-// return true;
-// }
+// layout(local_size_x = 128) in;
 
 #include "./util.glsl"
 void main()
 
 {
+    // uint sID = gl_NumSubgroups;
+    // // debugPrintfEXT("messagestd %d\n", sID);
+
+    // int r = subgroupAdd(1);
+    // debugPrintfEXT("message %d\n", r);
 
     // return;
     vec3 p_view;
     in_frustum(0, xyz_address, gs_camera.viewMatrix, gs_camera.projMatrix, false, p_view);
     int idx = int(gl_GlobalInvocationID.x) + int(gl_GlobalInvocationID.y * gl_NumWorkGroups.x);
-    debugPrintfEXT("message mocheng %d %d %d\n", gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, idx);
+    if (idx > gs_camera.point_num) {
+        return;
+    }
+    // gl_GlobalInvocationIndex
+    // debugPrintfEXT("message mocheng %d %d %d\n", gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, idx);
 
     _xyz xyz = _xyz(xyz_address);
     _scale scale = _scale(scale_address);
@@ -193,6 +202,17 @@ void main()
     // Inverse 2D covariance and opacity neatly pack into one float4
     conic_opacity.conic_opacity[idx] = vec4(conic.x, conic.y, conic.z, opacity.opacity[idx]);
     tiles_touched.tiles_touched[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
+    if (idx == 12345)
+        debugPrintfEXT("message %d %f %f %f %d %d \n",
+                       tiles_touched.tiles_touched[0],
+                       result.x,
+                       result.y,
+                       result.z,
+                       tiles_touched.tiles_touched[4],
+                       tiles_touched.tiles_touched[5]);
+    // int temp[10] = { 1, 2, 3, 4, 5, 6, 1, 1, 1, 1 };
+    // int prefix_sum = subgroupInclusiveAdd(temp[gl_LocalInvocationID.x]);
+    // debugPrintfEXT("message subgroupInclusiveAdd %d %d\n", gl_LocalInvocationID.x, prefix_sum);
 
     // debugPrintfEXT("nullptr %f %d %d", p_view.z, radii.radii[idx], tiles_touched.tiles_touched[idx]);
     // // debugPrintfEXT("message %d %d %d %d", rect_min.x, rect_min.y, rect_max.x, rect_max.y);

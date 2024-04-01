@@ -9,7 +9,7 @@ void GSPassBase::Init()
     // prepare_shader_pc(std::string shader_path, int pc_size)
     content.reset(new ComputePass);
     // content->set_constants_size(pc_size);
-    prepare_shader_pc("/home/mocheng/project/MCGS/include/shaders/sort/single_radixsort.comp.spv", sizeof(PushContant_Sort));
+    prepare_shader_pc();
     content->prepare();
     prepare_descriptorset();
     content->prepare_pipeline({ shader_module },

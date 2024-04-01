@@ -6,25 +6,20 @@
 namespace MCGS {
 using namespace MCRT;
 // class Image;
-// class ComputePass;
+class ProcessPass;
+class SumPass;
 
 class GaussianManager : public Instance_base<GaussianManager> {
 public:
     void Init();
-    // void pre_compute_irradiance();
-    // void pre_compute_LUT();
-    // void Write_LUT_image();
-    // void Write_irradiance_image();
-
-    // auto get_LUT()
-    // {
-    //     return LUT;
-    // }
-
-    // auto get_irradiance()
-    // {
-    //     return irradiance;
-    // }
+    auto get_buffer_addr()
+    {
+        return address;
+    }
+    auto get_point_num()
+    {
+        return point_num;
+    }
 
 private:
     void get_gaussian_raw_data();
@@ -42,6 +37,7 @@ private:
     std::shared_ptr<Buffer> feature_buffer;
 
     std::shared_ptr<Uniform_Stuff<GS_Address>> address;
+    uint point_num;
 
     // std::shared_ptr<Uniform_Stuff<int>> radii;
     struct GeometryState {
@@ -67,19 +63,9 @@ private:
         std::shared_ptr<Buffer> rgb_buffer;
         std::shared_ptr<Buffer> tiles_touched_buffer;
         std::shared_ptr<Buffer> point_offsets_buffer;
-
-        // std::shared_ptr<Uniform_Stuff<float>> depth;
-        // std::shared_ptr<Uniform_Stuff<float>> clamped;
-        // std::shared_ptr<Uniform_Stuff<float>> radii;
-        // std::shared_ptr<Uniform_Stuff<float>> mean2d;
-        // std::shared_ptr<Uniform_Stuff<float>> conv3d;
-        // std::shared_ptr<Uniform_Stuff<float>> conic_opacity;
-        // std::shared_ptr<Uniform_Stuff<float>> rgb;
-        // std::shared_ptr<Uniform_Stuff<float>> tiles_touched;
-        // std::shared_ptr<Uniform_Stuff<float>> point_offsets;
     };
     GeometryState geometry_state;
-    std::shared_ptr<ComputePass>
-        context;
+    std::shared_ptr<ProcessPass> precess_context;
+    std::shared_ptr<SumPass> sum_context;
 };
 }

@@ -94,11 +94,11 @@ namespace MCGS {
 //     //                                  sizeof(PushContant_Sort));
 //     // high_radixsort->post_prepare();
 // }
-void SortPass::prepare_shader_pc(std::string shader_path, int _pc_size)
+void SortPass::prepare_shader_pc( )
 {
     shader_module.reset(
         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/single_radixsort.comp.spv"));
-    pc_size = _pc_size;
+    pc_size = sizeof(PushContant_Sort);
 }
 void SortPass::prepare_descriptorset()
 {
@@ -319,7 +319,8 @@ void SortPass::execute(uint offset)
                                    //                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                    //                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-                                   cmd.dispatch(1, 1, 1);
+                                   //    cmd.dispatch(25000000, 1, 1);
+                                   cmd.dispatch(5, 5, 1);
                                });
 }
 }

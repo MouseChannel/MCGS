@@ -39,6 +39,7 @@ struct PushContant_GS {
     mat4 projMatrix;
     vec3 campos;
     float tanfov;
+    int point_num;
 };
 
 struct GS_Address {
@@ -67,3 +68,11 @@ struct GS_Address {
 struct PushContant_Sort {
     uint g_num_elements;
 };
+struct PushContant_Sum {
+    int step;
+    // uint second_step;
+};
+
+// struct TT {
+//     int a[];
+// };

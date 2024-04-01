@@ -6,7 +6,9 @@
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
 #include "ply_loader.hpp"
+#include "precess_pass.hpp"
 #include "shaders/push_contant.h"
+#include "sum_pass.hpp"
 namespace MCGS {
 // using namespace MCRT;
 
@@ -28,105 +30,104 @@ void GaussianManager::Init()
                                vk::PipelineStageFlagBits::eTopOfPipe,
                                vk::PipelineStageFlagBits::eBottomOfPipe);
 
-    context.reset(new ComputePass);
-    context->set_constants_size(sizeof(PushContant_GS));
-    context->prepare();
-    context->prepare_descriptorset([&]() {
-        auto descriptor_manager = context->get_descriptor_manager();
-        // descriptor_manager->Make_DescriptorSet(xyz,
-        //                                        (int)Gaussian_Data_Index::xyz_index,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(scale,
-        //                                        (int)Gaussian_Data_Index::scale_index,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(feature,
-        //                                        (int)Gaussian_Data_Index::feature_index,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(opacity,
-        //                                        (int)Gaussian_Data_Index::opacity_index,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(rotation,
-        //                                        (int)Gaussian_Data_Index::rotation_index,
-        //                                        DescriptorManager::Compute);
-        descriptor_manager->Make_DescriptorSet(render_out,
-                                               DescriptorManager::Compute,
-                                               (int)Gaussian_Data_Index::render_out_index,
-                                               vk::DescriptorType::eStorageImage,
-                                               vk::ShaderStageFlagBits::eCompute);
+    // context.reset(new ComputePass);
+    // context->set_constants_size(sizeof(PushContant_GS));
+    // context->prepare();
+    // context->prepare_descriptorset([&]() {
+    //     auto descriptor_manager = context->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(address,
-                                               (int)Gaussian_Data_Index::eAddress,
-                                               DescriptorManager::Compute);
-    });
+    //     descriptor_manager->Make_DescriptorSet(render_out,
+    //                                            DescriptorManager::Compute,
+    //                                            (int)Gaussian_Data_Index::render_out_index,
+    //                                            vk::DescriptorType::eStorageImage,
+    //                                            vk::ShaderStageFlagBits::eCompute);
 
-    std::shared_ptr<ShaderModule>
-        compute_shader {
-            new ShaderModule("/home/mocheng/project/MCGS/include/shaders/process.comp.spv")
-        };
-    context->prepare_pipeline({ compute_shader },
+    //     descriptor_manager->Make_DescriptorSet(address,
+    //                                            (int)Gaussian_Data_Index::eAddress,
+    //                                            DescriptorManager::Compute);
+    // });
 
-                              { context->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
-                              sizeof(PushContant_GS));
-    context->post_prepare();
-    PushContant_GS pc {
-        .viewMatrix = { -.993989f,
-                        .1083f,
-                        -.021122f,
-                        0.f,
-                        .11034f,
-                        .97551f,
-                        -.19026f,
-                        0.f,
-                        0.f,
-                        -.19143f,
-                        -.98151f,
-                        0.f,
-                        0.f,
-                        0.f,
-                        4.0311f,
-                        1.f },
-        .projMatrix = { -2.760816f,
-                        .300833f,
-                        -0.021124f,
-                        -0.021122f,
-                        .306501f,
-                        2.70976f,
-                        -0.190277f,
-                        -0.190258f,
-                        -0.f,
-                        -0.531742f,
-                        -0.981605f,
-                        -0.981507f,
-                        -0.f,
-                        -0.f,
-                        4.021532f,
-                        4.031129f },
-        .campos = { 0.0851f,
-                    0.7670f,
-                    0.39566f },
-        .tanfov = 0.36f
-    };
+    // std::shared_ptr<ShaderModule>
+    //     compute_shader {
+    //         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/process.comp.spv")
+    //     };
+    // context->prepare_pipeline({ compute_shader },
 
-    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
-                               [&](vk::CommandBuffer& cmd) {
-                                   cmd
-                                       .pushConstants<PushContant_GS>(
-                                           context
-                                               ->get_pipeline()
-                                               ->get_layout(),
-                                           vk::ShaderStageFlagBits::eCompute,
-                                           0,
-                                           pc);
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          context->get_pipeline()->get_layout(),
-                                                          0,
-                                                          context->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    context->get_pipeline()->get_handle());
+    //                           { context->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
+    //                           sizeof(PushContant_GS));
+    // context->post_prepare();
+    // PushContant_GS pc {
+    //     .viewMatrix = { -.993989f,
+    //                     .1083f,
+    //                     -.021122f,
+    //                     0.f,
+    //                     .11034f,
+    //                     .97551f,
+    //                     -.19026f,
+    //                     0.f,
+    //                     0.f,
+    //                     -.19143f,
+    //                     -.98151f,
+    //                     0.f,
+    //                     0.f,
+    //                     0.f,
+    //                     4.0311f,
+    //                     1.f },
+    //     .projMatrix = { -2.760816f,
+    //                     .300833f,
+    //                     -0.021124f,
+    //                     -0.021122f,
+    //                     .306501f,
+    //                     2.70976f,
+    //                     -0.190277f,
+    //                     -0.190258f,
+    //                     -0.f,
+    //                     -0.531742f,
+    //                     -0.981605f,
+    //                     -0.981507f,
+    //                     -0.f,
+    //                     -0.f,
+    //                     4.021532f,
+    //                     4.031129f },
+    //     .campos = { 0.0851f,
+    //                 0.7670f,
+    //                 0.39566f },
+    //     .tanfov = 0.36f
+    // };
 
-                                   cmd.dispatch(3, 2, 1);
-                               });
+    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
+    //                            [&](vk::CommandBuffer& cmd) {
+    //                                cmd
+    //                                    .pushConstants<PushContant_GS>(
+    //                                        context
+    //                                            ->get_pipeline()
+    //                                            ->get_layout(),
+    //                                        vk::ShaderStageFlagBits::eCompute,
+    //                                        0,
+    //                                        pc);
+    //                                cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+    //                                                       context->get_pipeline()->get_layout(),
+    //                                                       0,
+    //                                                       context->get_pipeline()->get_descriptor_sets(),
+    //                                                       {});
+    //                                cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+    //                                                 context->get_pipeline()->get_handle());
+
+    //                                cmd.dispatch(1, 1, 1);
+    //                            });
+
+    precess_context.reset(new ProcessPass);
+    // precess_context->set_address(address);
+    precess_context->Init();
+    precess_context->Execute();
+
+    sum_context.reset(new SumPass);
+    // sum_context.set_address();
+    sum_context->Init();
+    sum_context->Execute();
+    int r = geometry_state.tiles_touched_d[168385];
+    int rr = 0;
+
     std::cout << "here" << std::endl;
 }
 
@@ -212,6 +213,7 @@ void GaussianManager::get_gaussian_raw_data()
             feature_d[i * 48 + 3 + j] = dc_rest[i * 45 + j];
         }
     }
+    point_num = opacity_d.size();
 
     // xyz = UniformManager::make_uniform(xyz_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
     // scale = UniformManager::make_uniform(scale_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
@@ -254,6 +256,5 @@ void GaussianManager::get_gaussian_raw_data()
 
     };
     address = UniformManager::make_uniform({ addr }, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // geometry_state.depth = UniformManager::make_uniform(geometry_state.depth_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
 }
 }

@@ -1,0 +1,93 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_EXT_debug_printf : enable
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#define WORKER_GROUP_SIZE 1024
+#define SUBGROUP_SIZE 32
+
+layout(local_size_x = 1024) in;
+#include "./push_contant.h"
+layout(buffer_reference, scalar) buffer _tiles_touched
+{
+
+    uint tiles_touched[];
+};
+
+layout(buffer_reference, scalar) buffer _point_offsets
+{
+
+    uint point_offsets[];
+};
+ 
+ 
+layout(binding = eAddress, scalar)
+    buffer _Address
+{
+    uint64_t xyz_address;
+    uint64_t scale_address;
+    uint64_t feature_address;
+    uint64_t opacity_address;
+    uint64_t rotation_address;
+    uint64_t depth_address;
+    uint64_t clamped_address;
+    uint64_t radii_address;
+    uint64_t mean2d_address;
+    uint64_t conv3d_address;
+    uint64_t conic_opacity_address;
+    uint64_t rgb_address;
+    uint64_t tiles_touched_address;
+    uint64_t point_offsets_address;
+};
+
+layout(push_constant) uniform _PushContant
+{
+    PushContant_Sum sum_pc;
+};
+ 
+#define g_elements_in tiles_touched.tiles_touched
+ 
+void main()
+{
+    // debugPrintfEXT("message %d\n", gl_NumWorkGroups.x);
+    _tiles_touched tiles_touched = _tiles_touched(tiles_touched_address);
+    if (sum_pc.step == -1) {
+        // last_apple();
+        if (gl_GlobalInvocationID.x > gl_WorkGroupSize.x && gl_GlobalInvocationID.x % gl_WorkGroupSize.x != gl_WorkGroupSize.x - 1)
+            g_elements_in[gl_GlobalInvocationID.x] += g_elements_in[gl_GlobalInvocationID.x - gl_LocalInvocationID.x - 1];
+
+        if (gl_GlobalInvocationID.x == 168385) {
+            debugPrintfEXT("message %d\n", g_elements_in[gl_GlobalInvocationID.x]);
+        }
+        return;
+    }
+
+  
+    const uint cur_global_index = (gl_GlobalInvocationID.x + 1) * sum_pc.step - 1;
+    uint cur = g_elements_in[cur_global_index];
+    uint sum = subgroupAdd(cur);
+    uint prefix_sum = subgroupInclusiveAdd(cur);
+    g_elements_in[cur_global_index] = prefix_sum;
+    barrier();
+
+    if (gl_SubgroupID == 0) {
+        const uint cur_second_index = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_SubgroupInvocationID * sum_pc.step * gl_SubgroupSize + sum_pc.step * gl_SubgroupSize - 1;
+        uint cur1 = g_elements_in[cur_second_index];
+        uint prefix_sum1 = subgroupInclusiveAdd(cur1);
+        g_elements_in[cur_second_index] = prefix_sum1;
+    }
+    barrier();
+    // make current block local up
+    if (gl_LocalInvocationID.x >= gl_SubgroupSize && gl_LocalInvocationID.x % gl_SubgroupSize != gl_SubgroupSize - 1) {
+        g_elements_in[cur_global_index] += g_elements_in[cur_global_index - gl_SubgroupInvocationID * sum_pc.step - sum_pc.step];
+        // debugPrintfEXT("%d %d %d  %d  \n",
+        //                cur_global_index,
+        //                cur_global_index - gl_SubgroupInvocationID * sum_pc.step - sum_pc.step,
+        //                g_elements_in[cur_global_index],
+        //                g_elements_in[cur_global_index - gl_SubgroupInvocationID * sum_pc.step - 1]);
+    }
+}

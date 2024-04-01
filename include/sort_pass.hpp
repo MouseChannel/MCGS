@@ -10,7 +10,7 @@ public:
 
 private:
     void prepare_buffer() override;
-    void prepare_shader_pc(std::string shader_path, int pc_size) override;
+    void prepare_shader_pc( ) override;
     void prepare_descriptorset() override;
 
     void execute(uint offset);

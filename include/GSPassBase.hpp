@@ -1,4 +1,6 @@
+#pragma once
 #include "Rendering/ComputePass.hpp"
+#include "shaders/push_contant.h"
 #include <memory>
 namespace MCGS {
 using namespace MCRT;
@@ -9,7 +11,8 @@ public:
     virtual void Execute() = 0;
 
 private:
-    virtual void prepare_shader_pc(std::string shader_path, int pc_size) = 0;
+    // virtual void custom_init(std::shared_ptr<Uniform_Stuff<GS_Address>> _address) = 0;
+    virtual void prepare_shader_pc() = 0;
     virtual void prepare_descriptorset() = 0;
     virtual void prepare_buffer() = 0;
 
