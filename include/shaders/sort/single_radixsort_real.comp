@@ -7,14 +7,16 @@
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_arithmetic : enable
 #extension GL_EXT_debug_printf : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_atomic_int64 : require
+#extension GL_EXT_shader_subgroup_extended_types_int64 : require
 #define WORKGROUP_SIZE 256 // assert WORKGROUP_SIZE >= RADIX_SORT_BINS
-
 
 #define RADIX_SORT_BINS 256
 #define SUBGROUP_SIZE 32 // 32 NVIDIA; 64 AMD
 
 #define BITS 32 // sorting uint32_t
-#define ITERATIONS 4 // 4 iterations, sorting 8 bits per iteration
+#define ITERATIONS BITS / 8 // 4 iterations, sorting 8 bits per iteration
 
 layout(local_size_x = WORKGROUP_SIZE) in;
 
@@ -51,9 +53,10 @@ void main()
     uint lID = gl_LocalInvocationID.x;
     uint sID = gl_SubgroupID;
     uint lsID = gl_SubgroupInvocationID;
-  
 
     for (uint iteration = 0; iteration < ITERATIONS; iteration++) {
+        // for (uint iteration = ITERATIONS - 1; iteration >= 0; iteration--) {
+
         uint shift = 8 * iteration;
 
         // initialize histogram
@@ -65,8 +68,9 @@ void main()
         for (uint ID = lID; ID < g_num_elements; ID += WORKGROUP_SIZE) {
             // determine the bin
             const uint bin = (ELEMENT_IN(ID, iteration) >> shift) & (RADIX_SORT_BINS - 1);
+
             // increment the histogram
-            atomicAdd(histogram[bin], 1U);
+            atomicAdd(histogram[uint(bin)], 1U);
         }
         barrier();
 
@@ -83,17 +87,18 @@ void main()
         }
         barrier();
 
-        // global prefix sums (offsets)
+        // // global prefix sums (offsets)
         if (sID == 0) {
             uint offset = 0;
             for (uint i = lsID; i < RADIX_SORT_BINS; i += SUBGROUP_SIZE) {
                 global_offsets[i] = offset + local_offsets[i];
+
                 offset += sums[i / SUBGROUP_SIZE];
             }
         }
         barrier();
 
-        //     ==== scatter keys according to global offsets =====
+        // //     ==== scatter keys according to global offsets =====
         const uint flags_bin = lID / BITS;
         const uint flags_bit = 1 << (lID % BITS);
 
@@ -110,17 +115,27 @@ void main()
             }
             barrier();
 
+            // ///////////////////
+
+            // messagetrt 186957023 0            messagetrt 216619007 256 messagetrt 174684471 512 messagetrt 184784081 768 messagetrt 23592960 0 messagetrt 83886175 256 messagetrt 154599629 512 messagetrt 202834240 768
+
+            ////////////////////
+
             uint element_in = 0;
             uint binID = 0;
             uint binOffset = 0;
             if (ID < g_num_elements) {
                 element_in = ELEMENT_IN(ID, iteration);
+                // debugPrintfEXT("message %u\n", element_in);
                 binID = (element_in >> shift) & uint(RADIX_SORT_BINS - 1);
                 // offset for group
+
                 binOffset = global_offsets[binID];
+
                 // add bit to flag
                 atomicAdd(bin_flags[binID].flags[flags_bin], flags_bit);
             }
+
             barrier();
 
             if (ID < g_num_elements) {
@@ -137,6 +152,10 @@ void main()
                 }
                 if (iteration % 2 == 0) {
                     g_elements_out[binOffset + prefix] = element_in;
+                    if (gl_LocalInvocationID.x == 0 && blockID < 1000) {
+                        // debugPrintfEXT("messageblock %u \n", blockID);
+                        debugPrintfEXT("messagetrt %u %u \n", g_elements_out[binOffset + prefix], blockID);
+                    }
                 } else {
                     g_elements_in[binOffset + prefix] = element_in;
                 }

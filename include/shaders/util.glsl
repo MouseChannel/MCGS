@@ -4,9 +4,8 @@
 // using vec3 = glm::vec3;
 // using vec4 = glm::vec4;
 // #endif
-
-#define BLOCK_X 16
-#define BLOCK_Y 16
+#include "./allbuffer_reference.glsl"
+#include "./config.glsl"
 // #define M 16
 float SH_C0 = 0.28209479177387814f;
 float SH_C1 = 0.4886025119029199f;
@@ -54,14 +53,16 @@ void getRect(vec2 p, int max_radius, inout uvec2 rect_min, inout uvec2 rect_max,
 {
     rect_min = uvec2(
         min(grid.x,
-            max(0,
-                ((p.x - max_radius) / BLOCK_X))),
+            max(int(0),
+                int((p.x - max_radius) / BLOCK_X))),
         min(grid.y,
-            max(0,
-                ((p.y - max_radius) / BLOCK_Y))));
+            max(int(0),
+                int((p.y - max_radius) / BLOCK_Y))));
     rect_max = uvec2(
-        min(grid.x, max(0, ((p.x + max_radius + BLOCK_X - 1) / BLOCK_X))),
-        min(grid.y, max(0, ((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y))));
+        min(grid.x,
+            max(int(0), int((p.x + max_radius + BLOCK_X - 1) / BLOCK_X))),
+        min(grid.y,
+            max(int(0), int((p.y + max_radius + BLOCK_Y - 1) / BLOCK_Y))));
 }
 
 bool in_frustum(int idx,
@@ -72,7 +73,12 @@ bool in_frustum(int idx,
                 inout vec3 p_view)
 {
     _xyz xyz = _xyz(xyz_address);
-    vec3 p_orig = { xyz.xyz[3 * idx], xyz.xyz[3 * idx + 1], xyz.xyz[3 * idx + 2] };
+    // vec3 p_orig = { xyz.xyz[3 * idx], xyz.xyz[3 * idx + 1], xyz.xyz[3 * idx + 2] };
+
+    vec3 p_orig = xyz.xyz[idx];
+    // if (idx == 12345) {
+    //     debugPrintfEXT("messagein %f %f %f\n", p_orig.x, p_orig.y, p_orig.z);
+    // }
 
     // vec4 p_hom = transformPoint4x4(p_orig, projmatrix);
     // float p_w = 1.0f / (p_hom.w + 0.0000001f);
@@ -81,7 +87,6 @@ bool in_frustum(int idx,
     p_view = transformPoint4x3(p_orig, viewmatrix);
     if (p_view.z <= 0.2f) // || ((p_proj.x < -1.3 || p_proj.x > 1.3 || p_proj.y < -1.3 || p_proj.y > 1.3)))
     {
-
         return false;
     }
     return true;

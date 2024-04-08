@@ -66,7 +66,7 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     // Obj_loader::load_model("/home/mocheng/project/MCRT/assets/untitled.obj");
     IBLManager::Get_Singleton()->Init(sky_box);
     // NoiseManager::Get_Singleton()->InitPerlinNoise();
-    MCGS::GaussianManager::Get_Singleton()->Init();
+
     // std::shared_ptr<MCGS::SortPass> sort_pass;
     // sort_pass.reset(new MCGS::SortPass);
     // sort_pass->Init();
@@ -191,6 +191,8 @@ void raster_context_pbr::EndFrame()
 
 std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
 {
+
+    MCGS::GaussianManager::Get_Singleton()->Init();
     // get_device()->get_handle().waitIdle();
     auto render_context = std::reinterpret_pointer_cast<GraphicPass>(PASS[Graphic]);
 

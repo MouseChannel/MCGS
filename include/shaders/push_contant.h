@@ -57,22 +57,27 @@ struct GS_Address {
     uint64_t rgb_address;
     uint64_t tiles_touched_address;
     uint64_t point_offsets_address;
+    // BinningState
+    uint64_t point_list_keys_address;
+    uint64_t point_list_keys_pingpong_address;
+    uint64_t point_list_address;
+    uint64_t point_list_pingpong_address;
+    // ImageState
+    uint64_t ranges_address;
+    uint64_t n_contrib_address;
+    uint64_t accum_alpha_address;
 };
-// struct PushContant_Sort {
-//     uint g_num_elements;
-//     uint g_shift;
-//     uint g_num_workgroups;
-//     uint g_num_blocks_per_workgroup;
-// };
 
 struct PushContant_Sort {
     uint g_num_elements;
 };
 struct PushContant_Sum {
     int step;
-    // uint second_step;
+    uint g_num_elements;
 };
-
+struct PushContant_Dup {
+    uint g_num_elements;
+};
 // struct TT {
 //     int a[];
 // };

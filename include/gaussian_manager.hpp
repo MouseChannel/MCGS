@@ -8,7 +8,10 @@ using namespace MCRT;
 // class Image;
 class ProcessPass;
 class SumPass;
-
+class duplicatePass;
+class SortPass;
+class IdentifyPass;
+class RasterPass;
 class GaussianManager : public Instance_base<GaussianManager> {
 public:
     void Init();
@@ -51,7 +54,7 @@ private:
         std::vector<float> cov3d_d;
         std::vector<float> conic_opacity_d;
         std::vector<float> rgb_d;
-        std::vector<float> tiles_touched_d;
+        std::vector<uint> tiles_touched_d;
         std::vector<float> scanning_space_d;
         std::vector<float> point_offsets_d;
         std::shared_ptr<Buffer> depth_buffer;
@@ -63,9 +66,53 @@ private:
         std::shared_ptr<Buffer> rgb_buffer;
         std::shared_ptr<Buffer> tiles_touched_buffer;
         std::shared_ptr<Buffer> point_offsets_buffer;
-    };
-    GeometryState geometry_state;
+    } geometry_state;
+
+    struct BinningState {
+        BinningState() = default;
+        BinningState(int size);
+        std::vector<uint64_t> point_list_key_d;
+        std::vector<uint64_t> point_list_d;
+        std::vector<uint64_t> point_list_key_pingpong_d;
+        std::vector<uint64_t> point_list_pingpong_d;
+        std::shared_ptr<Buffer> point_list_key_buffer;
+        std::shared_ptr<Buffer> point_list_buffer;
+
+        std::shared_ptr<Buffer> point_list_key_pingpong_buffer;
+        std::shared_ptr<Buffer> point_list_pingpong_buffer;
+
+    } binning_state;
+    struct ImageState {
+        ImageState() = default;
+        ImageState(int size);
+        std::vector<uint32_t> ranges_d;
+        std::vector<uint32_t> n_contrib_d;
+        std::vector<float> accum_alpha_d;
+        std::shared_ptr<Buffer> ranges_buffer;
+
+        std::shared_ptr<Buffer> n_contrib_buffer;
+
+        std::shared_ptr<Buffer> accum_alpha_buffer;
+
+    } image_state;
+
+    // GeometryState geometry_state;
     std::shared_ptr<ProcessPass> precess_context;
     std::shared_ptr<SumPass> sum_context;
+
+    std::shared_ptr<duplicatePass> duplicate_context;
+    std::shared_ptr<SortPass> sort_context;
+    std::shared_ptr<IdentifyPass> identify_content;
+    std::shared_ptr<RasterPass> render_content;
+
+    std::vector<uint64_t> point_list_keyd;
+
+    std::vector<uint64_t> point_list_valued;
+
+    std::shared_ptr<Uniform_Stuff<uint64_t>>
+        point_list_key;
+
+    std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value;
+    // conv3d = UniformManager::make_uniform(cov3d_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
 };
 }

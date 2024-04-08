@@ -3,101 +3,26 @@
 #include "Wrapper/CommandBuffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
+#include "gaussian_manager.hpp"
 #include "shaders/push_contant.h"
 #include <chrono>
 #include <random>
 namespace MCGS {
-// SortPass::SortPass()
-//     : GSPassBase()
-// {
-// }
-// SortPass::SortPass()
-// {
-//     // prepare_buffer();
-
-//     // content.reset(new ComputePass);
-//     // content->set_constants_size(sizeof(PushContant_Sort));
-//     // content->prepare();
-//     // content->prepare_descriptorset([&]() {
-//     //     auto descriptor_manager = content->get_descriptor_manager();
-
-//     //     descriptor_manager->Make_DescriptorSet(element_in_data,
-//     //                                            0,
-//     //                                            DescriptorManager::Compute);
-//     //     // descriptor_manager->Make_DescriptorSet(zero_data,
-//     //     //                                        1,
-//     //     //                                        DescriptorManager::Compute);
-//     //     descriptor_manager->Make_DescriptorSet(ping_pong_data,
-//     //                                            1,
-//     //                                            DescriptorManager::Compute);
-//     // });
-//     // std::shared_ptr<ShaderModule>
-//     //     sort_compute_shader {
-//     //         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/single_radixsort.comp.spv")
-//     //     };
-//     // content->prepare_pipeline({ sort_compute_shader },
-
-//     //                                { content->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
-//     //                                sizeof(PushContant_Sort));
-//     // content->post_prepare();
-
-//     // low_radixsort.reset(new ComputePass);
-//     // low_radixsort->set_constants_size(sizeof(PushContant_Sort));
-//     // low_radixsort->prepare();
-//     // low_radixsort->prepare_descriptorset([&]() {
-//     //     auto descriptor_manager = low_radixsort->get_descriptor_manager();
-
-//     //     descriptor_manager->Make_DescriptorSet(element_in_data,
-//     //                                            0,
-//     //                                            DescriptorManager::Compute);
-//     //     // descriptor_manager->Make_DescriptorSet(zero_data,
-//     //     //                                        1,
-//     //     //                                        DescriptorManager::Compute);
-//     //     descriptor_manager->Make_DescriptorSet(histograms_data,
-//     //                                            1,
-//     //                                            DescriptorManager::Compute);
-//     // });
-//     // std::shared_ptr<ShaderModule>
-//     //     low_radixsort_compute_shader {
-//     //         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort_histograms.comp.spv")
-//     //     };
-//     // low_radixsort->prepare_pipeline({ low_radixsort_compute_shader },
-
-//     //                                 { low_radixsort->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
-//     //                                 sizeof(PushContant_Sort));
-//     // low_radixsort->post_prepare();
-
-//     // high_radixsort.reset(new ComputePass);
-//     // high_radixsort->set_constants_size(sizeof(PushContant_Sort));
-//     // high_radixsort->prepare();
-//     // high_radixsort->prepare_descriptorset([&]() {
-//     //     auto descriptor_manager = high_radixsort->get_descriptor_manager();
-
-//     //     descriptor_manager->Make_DescriptorSet(element_in_data,
-//     //                                            0,
-//     //                                            DescriptorManager::Compute);
-//     //     descriptor_manager->Make_DescriptorSet(zero_data,
-//     //                                            1,
-//     //                                            DescriptorManager::Compute);
-//     //     descriptor_manager->Make_DescriptorSet(histograms_data,
-//     //                                            2,
-//     //                                            DescriptorManager::Compute);
-//     // });
-
-//     // std::shared_ptr<ShaderModule>
-//     //     high_radixsort_compute_shader {
-//     //         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort.comp.spv")
-//     //     };
-//     // high_radixsort->prepare_pipeline({ high_radixsort_compute_shader },
-
-//     //                                  { high_radixsort->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
-//     //                                  sizeof(PushContant_Sort));
-//     // high_radixsort->post_prepare();
-// }
-void SortPass::prepare_shader_pc( )
+SortPass::SortPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _point_list_key, std::shared_ptr<Uniform_Stuff<uint64_t>> _point_list_value)
+{
+    point_list_key = _point_list_key;
+    ping_pong_temp.resize(1625771);
+    point_list_pingpong = UniformManager::make_uniform(ping_pong_temp,
+                                                       vk::ShaderStageFlagBits::eCompute,
+                                                       vk::DescriptorType::eStorageBuffer);
+    point_list_value = _point_list_value;
+}
+void SortPass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/single_radixsort.comp.spv"));
+        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
+    shader_module.reset(
+        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
     pc_size = sizeof(PushContant_Sort);
 }
 void SortPass::prepare_descriptorset()
@@ -105,49 +30,64 @@ void SortPass::prepare_descriptorset()
     content->prepare_descriptorset([&]() {
         auto descriptor_manager = content->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(element_in_data,
+        descriptor_manager->Make_DescriptorSet(point_list_key,
                                                0,
                                                DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(zero_data,
-        //                                        1,
-        //                                        DescriptorManager::Compute);
-        descriptor_manager->Make_DescriptorSet(ping_pong_data,
+
+        descriptor_manager->Make_DescriptorSet(point_list_pingpong,
                                                1,
+                                               DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(element_value_in_data,
+        //                                        2,
+        //                                        DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(ping_pong_value_data,
+        //                                        3,
+        //                                        DescriptorManager::Compute);
+        descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
+                                               (int)Gaussian_Data_Index::eAddress,
                                                DescriptorManager::Compute);
     });
 }
 void SortPass::prepare_buffer()
 {
     std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib(0, 0x0FFFFFFF);
-    element_in.resize(num_element);
-    for (int i = 0; i < num_element; i++) {
+    std::mt19937 gen(123);
+    std::uniform_int_distribution<uint32_t> distrib(0, 0x0FFFFFFFF);
+    // element_in.resize(GaussianManager::Get_Singleton()->get_point_num());
+    element_in.resize(1625771);
+    element_value_in.resize(1625771);
+
+    for (int i = 0; i < element_in.size(); i++) {
+
         element_in[i] = distrib(gen);
+        element_in[i] <<= 32;
+        // if (i < 66) {
+        //     element_in[i] *= -1;
+        // }
+        element_value_in[i] = element_in[i];
+        // element_in[i] <<= 12;
     }
-    ping_pong.resize(num_element);
+    // ping_pong.resize(GaussianManager::Get_Singleton()->get_point_num());
+    ping_pong.resize(1625771);
+
+    ping_pong_value.resize(num_element);
+
     element_in_data = UniformManager::make_uniform(element_in,
                                                    vk::ShaderStageFlagBits::eCompute,
                                                    vk::DescriptorType::eStorageBuffer,
                                                    vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+    element_value_in_data = UniformManager::make_uniform(element_value_in,
+                                                         vk::ShaderStageFlagBits::eCompute,
+                                                         vk::DescriptorType::eStorageBuffer,
+                                                         vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
     ping_pong_data = UniformManager::make_uniform(ping_pong,
                                                   vk::ShaderStageFlagBits::eCompute,
                                                   vk::DescriptorType::eStorageBuffer,
                                                   vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-
-    // zeros.resize(num_element);
-    // element_in_data = UniformManager::make_uniform(element_in,
-    //                                                vk::ShaderStageFlagBits::eCompute,
-    //                                                vk::DescriptorType::eStorageBuffer,
-    //                                                vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-    // zero_data = UniformManager::make_uniform(zeros,
-    //                                          vk::ShaderStageFlagBits::eCompute,
-    //                                          vk::DescriptorType::eStorageBuffer,
-    //                                          vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-    // histograms_data = UniformManager::make_uniform(zeros,
-    //                                                vk::ShaderStageFlagBits::eCompute,
-    //                                                vk::DescriptorType::eStorageBuffer,
-    //                                                vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+    ping_pong_value_data = UniformManager::make_uniform(ping_pong_value,
+                                                        vk::ShaderStageFlagBits::eCompute,
+                                                        vk::DescriptorType::eStorageBuffer,
+                                                        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 }
 
 void SortPass::Execute()
@@ -173,74 +113,45 @@ void SortPass::Execute()
     std::cout << "GPU sort finished in " << gpuSortTime << "[ms]." << std::endl;
 
     std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
-    std::sort(element_in.begin(), element_in.end());
+    // std::sort(element_in.begin(), element_in.end());
     std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
     auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
 
     std::cout << "CPU sort finished in " << cpuSortTime << "[ms]." << std::endl;
-    // std::vector<uint32_t> data(num_element);
-    // auto buffer = Buffer::create_buffer(data.data(), data.size() * sizeof(data[0]), vk::BufferUsageFlagBits::eTransferDst);
-    // Buffer::CopyBuffer(element_in_data->buffer, buffer);
 
-    // // auto temp = buffer->Get_mapped_data(0);
-    // auto temp = ping_pong_data->buffer->Get_mapped_data(0);
+    // std::vector<uint64_t> data1(num_element);
+    // std::vector<uint32_t> datatemp(num_element);
+    // // std::vector<uint64_t> data2(num_element);
 
-    // std::memcpy(data.data(), temp.data(), temp.size());
-    // std::vector<uint32_t> data1(num_element);
-    // auto temp1 = element_in_data->buffer->Get_mapped_data(0);
+    // std::shared_ptr<Buffer> tempbuffer;
+    // tempbuffer.reset(new Buffer(element_in.size() * 8, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+    // // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
+
+    // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
+
+    // auto temp1 = tempbuffer->Get_mapped_data(0);
+
+    // // auto temp2 = element_value_in_data->buffer->Get_mapped_data(0);
 
     // std::memcpy(data1.data(), temp1.data(), temp1.size());
+    // // std::memcpy(data2.data(), temp2.data(), temp2.size());
+    // for (int i = 0; i < data1.size(); i++) {
+    //     datatemp[i] = data1[i];
+    // }
 
-    // auto re = element_in;
-    // int a = 0;
+    // int r = data1[];
+    int rr = 0;
 }
-// void SortPass::record_command()
-// {
 
-//     cmd.reset(new CommandBuffer);
-//     PushContant_Sort pc {
-//         .g_num_elements = num_element,
-//         // .g_shift = offset,
-//         // .g_num_workgroups = size_x,
-//         // .g_num_blocks_per_workgroup = num_blocks_per_workgroup
-//     };
-//     cmd->get_handle().begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-//     cmd->get_handle()
-//         .pushConstants<PushContant_Sort>(
-//             content
-//                 ->get_pipeline()
-//                 ->get_layout(),
-//             vk::ShaderStageFlagBits::eCompute,
-//             0,
-//             pc);
-//     cmd->get_handle().bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-//                                          content->get_pipeline()->get_layout(),
-//                                          0,
-//                                          content->get_pipeline()->get_descriptor_sets(),
-//                                          {});
-//     cmd->get_handle().bindPipeline(vk::PipelineBindPoint::eCompute,
-//                                    content->get_pipeline()->get_handle());
-
-//     cmd->get_handle().pipelineBarrier2(vk::DependencyInfo()
-//                                            .setMemoryBarriers(
-//                                                vk::MemoryBarrier2()
-//                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-//                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-//                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-//                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-//     cmd->get_handle().dispatch(1, 1, 1);
-
-//     cmd->get_handle().end();
-// }
 void SortPass::execute(uint offset)
 {
-    // uint32_t globalInvocationSize = num_element / num_blocks_per_workgroup;
-    // uint32_t remainder = num_element % num_blocks_per_workgroup;
-    // globalInvocationSize += remainder > 0 ? 1 : 0;
-    // uint size_x = std::ceil((float)globalInvocationSize / (float)WORKGROUP_SIZE);
 
     PushContant_Sort pc {
-        .g_num_elements = num_element,
+        // .g_num_elements = GaussianManager::Get_Singleton()->get_point_num() * 10,
+        .g_num_elements = 1625771,
+
+        // .g_num_elements = num_element,
+
         // .g_shift = offset,
         // .g_num_workgroups = size_x,
         // .g_num_blocks_per_workgroup = num_blocks_per_workgroup
@@ -273,54 +184,7 @@ void SortPass::execute(uint offset)
                                                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
                                                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-                                   //    cmd.pushConstants<PushContant_Sort>(
-                                   //        low_radixsort
-                                   //            ->get_pipeline()
-                                   //            ->get_layout(),
-                                   //        vk::ShaderStageFlagBits::eCompute,
-                                   //        0,
-                                   //        pc);
-                                   //    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                   //                           low_radixsort->get_pipeline()->get_layout(),
-                                   //                           0,
-                                   //                           low_radixsort->get_pipeline()->get_descriptor_sets(),
-                                   //                           {});
-                                   //    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                   //                     low_radixsort->get_pipeline()->get_handle());
-
-                                   //    cmd.pipelineBarrier2(vk::DependencyInfo()
-                                   //                             .setMemoryBarriers(
-                                   //                                 vk::MemoryBarrier2()
-                                   //                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                   //                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                   //                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                   //                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-
-                                   //    cmd.pushConstants<PushContant_Sort>(
-                                   //        high_radixsort
-                                   //            ->get_pipeline()
-                                   //            ->get_layout(),
-                                   //        vk::ShaderStageFlagBits::eCompute,
-                                   //        0,
-                                   //        pc);
-                                   //    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                   //                           high_radixsort->get_pipeline()->get_layout(),
-                                   //                           0,
-                                   //                           high_radixsort->get_pipeline()->get_descriptor_sets(),
-                                   //                           {});
-                                   //    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                   //                     high_radixsort->get_pipeline()->get_handle());
-
-                                   //    cmd.pipelineBarrier2(vk::DependencyInfo()
-                                   //                             .setMemoryBarriers(
-                                   //                                 vk::MemoryBarrier2()
-                                   //                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                   //                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                   //                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                   //                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-
-                                   //    cmd.dispatch(25000000, 1, 1);
-                                   cmd.dispatch(5, 5, 1);
+                                   cmd.dispatch(1, 1, 1);
                                });
 }
 }

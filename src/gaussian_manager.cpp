@@ -5,9 +5,13 @@
 #include "Wrapper/Buffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
+#include "duplicateWithKeys_pass.hpp"
+#include "identify_pass.hpp"
 #include "ply_loader.hpp"
 #include "precess_pass.hpp"
+#include "raster_pass.hpp"
 #include "shaders/push_contant.h"
+#include "sort_pass.hpp"
 #include "sum_pass.hpp"
 namespace MCGS {
 // using namespace MCRT;
@@ -30,104 +34,67 @@ void GaussianManager::Init()
                                vk::PipelineStageFlagBits::eTopOfPipe,
                                vk::PipelineStageFlagBits::eBottomOfPipe);
 
-    // context.reset(new ComputePass);
-    // context->set_constants_size(sizeof(PushContant_GS));
-    // context->prepare();
-    // context->prepare_descriptorset([&]() {
-    //     auto descriptor_manager = context->get_descriptor_manager();
-
-    //     descriptor_manager->Make_DescriptorSet(render_out,
-    //                                            DescriptorManager::Compute,
-    //                                            (int)Gaussian_Data_Index::render_out_index,
-    //                                            vk::DescriptorType::eStorageImage,
-    //                                            vk::ShaderStageFlagBits::eCompute);
-
-    //     descriptor_manager->Make_DescriptorSet(address,
-    //                                            (int)Gaussian_Data_Index::eAddress,
-    //                                            DescriptorManager::Compute);
-    // });
-
-    // std::shared_ptr<ShaderModule>
-    //     compute_shader {
-    //         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/process.comp.spv")
-    //     };
-    // context->prepare_pipeline({ compute_shader },
-
-    //                           { context->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Compute) },
-    //                           sizeof(PushContant_GS));
-    // context->post_prepare();
-    // PushContant_GS pc {
-    //     .viewMatrix = { -.993989f,
-    //                     .1083f,
-    //                     -.021122f,
-    //                     0.f,
-    //                     .11034f,
-    //                     .97551f,
-    //                     -.19026f,
-    //                     0.f,
-    //                     0.f,
-    //                     -.19143f,
-    //                     -.98151f,
-    //                     0.f,
-    //                     0.f,
-    //                     0.f,
-    //                     4.0311f,
-    //                     1.f },
-    //     .projMatrix = { -2.760816f,
-    //                     .300833f,
-    //                     -0.021124f,
-    //                     -0.021122f,
-    //                     .306501f,
-    //                     2.70976f,
-    //                     -0.190277f,
-    //                     -0.190258f,
-    //                     -0.f,
-    //                     -0.531742f,
-    //                     -0.981605f,
-    //                     -0.981507f,
-    //                     -0.f,
-    //                     -0.f,
-    //                     4.021532f,
-    //                     4.031129f },
-    //     .campos = { 0.0851f,
-    //                 0.7670f,
-    //                 0.39566f },
-    //     .tanfov = 0.36f
-    // };
-
-    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
-    //                            [&](vk::CommandBuffer& cmd) {
-    //                                cmd
-    //                                    .pushConstants<PushContant_GS>(
-    //                                        context
-    //                                            ->get_pipeline()
-    //                                            ->get_layout(),
-    //                                        vk::ShaderStageFlagBits::eCompute,
-    //                                        0,
-    //                                        pc);
-    //                                cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-    //                                                       context->get_pipeline()->get_layout(),
-    //                                                       0,
-    //                                                       context->get_pipeline()->get_descriptor_sets(),
-    //                                                       {});
-    //                                cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-    //                                                 context->get_pipeline()->get_handle());
-
-    //                                cmd.dispatch(1, 1, 1);
-    //                            });
-
     precess_context.reset(new ProcessPass);
     // precess_context->set_address(address);
     precess_context->Init();
     precess_context->Execute();
 
+    // std::vector<uint64_t> data1(16257710);
+
+    point_list_keyd.resize(1625771, 12);
+    point_list_valued.resize(1625771);
+    point_list_key = UniformManager::make_uniform(point_list_keyd,
+                                                  vk::ShaderStageFlagBits::eCompute,
+                                                  vk::DescriptorType::eStorageBuffer,
+                                                  vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc);
+    point_list_value = UniformManager::make_uniform(point_list_valued,
+                                                    vk::ShaderStageFlagBits::eCompute,
+                                                    vk::DescriptorType::eStorageBuffer,
+                                                    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc);
+
     sum_context.reset(new SumPass);
     // sum_context.set_address();
     sum_context->Init();
-    sum_context->Execute();
-    int r = geometry_state.tiles_touched_d[168385];
-    int rr = 0;
+    duplicate_context.reset(new duplicatePass(point_list_key, point_list_value));
+    duplicate_context->Init();
 
+    sort_context.reset(new SortPass(point_list_key, point_list_value));
+    sort_context->Init();
+
+    sum_context->Execute();
+    duplicate_context->Execute();
+    sort_context->Execute();
+
+    identify_content.reset(new IdentifyPass);
+    identify_content->Init();
+    identify_content->Execute();
+
+    render_content.reset(new RasterPass);
+    render_content->Init();
+    render_content->Execute();
+
+    std::vector<uint32_t>
+        data1(800 * 800);
+    std::shared_ptr<Buffer> tempbuffer;
+    tempbuffer.reset(new Buffer(data1.size() * sizeof(data1[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+    // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
+
+    Buffer::CopyBuffer(image_state.ranges_buffer, tempbuffer);
+
+    // Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
+
+    // Buffer::CopyBuffer(point_list_value->buffer, tempbuffer);
+
+    auto temp1 = tempbuffer->Get_mapped_data(0);
+    std::memcpy(data1.data(), temp1.data(), data1.size() * sizeof(data1[0]));
+    // int r = geometry_state.tiles_touched_d[168385];
+    int rr = 0;
+    for (int i = 0; i < data1.size(); i++) {
+        if (data1[i] != 12345) {
+            // std::cout << 12344 << std::endl;
+        }
+    }
+    // 954565595133
     std::cout << "here" << std::endl;
 }
 
@@ -181,6 +148,44 @@ GaussianManager::GeometryState::GeometryState(int size)
     point_offsets_buffer = Buffer::CreateDeviceBuffer(point_offsets_d.data(),
                                                       point_offsets_d.size() * sizeof(point_offsets_d[0]),
                                                       flag);
+}
+
+GaussianManager::BinningState::BinningState(int size)
+{
+    point_list_d.resize(size);
+    point_list_key_d.resize(size);
+    point_list_pingpong_d.resize(size);
+    point_list_key_pingpong_d.resize(size);
+    auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR | vk::BufferUsageFlagBits::eTransferSrc;
+    point_list_buffer = Buffer::CreateDeviceBuffer(point_list_d.data(),
+                                                   point_list_d.size() * sizeof(point_list_d[0]),
+                                                   flag);
+    point_list_key_buffer = Buffer::CreateDeviceBuffer(point_list_key_d.data(),
+                                                       point_list_key_d.size() * sizeof(point_list_key_d[0]),
+                                                       flag);
+    point_list_pingpong_buffer = Buffer::CreateDeviceBuffer(point_list_pingpong_d.data(),
+                                                            point_list_pingpong_d.size() * sizeof(point_list_pingpong_d[0]),
+                                                            flag);
+    point_list_key_pingpong_buffer = Buffer::CreateDeviceBuffer(point_list_key_pingpong_d.data(),
+                                                                point_list_key_pingpong_d.size() * sizeof(point_list_key_pingpong_d[0]),
+                                                                flag);
+}
+
+GaussianManager::ImageState::ImageState(int size)
+{
+    ranges_d.resize(size);
+    n_contrib_d.resize(size);
+    accum_alpha_d.resize(size);
+    auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR | vk::BufferUsageFlagBits::eTransferSrc;
+    ranges_buffer = Buffer::CreateDeviceBuffer(ranges_d.data(),
+                                               ranges_d.size() * sizeof(ranges_d[0]),
+                                               flag);
+    n_contrib_buffer = Buffer::CreateDeviceBuffer(n_contrib_d.data(),
+                                                  n_contrib_d.size() * sizeof(n_contrib_d[0]),
+                                                  flag);
+    accum_alpha_buffer = Buffer::CreateDeviceBuffer(accum_alpha_d.data(),
+                                                    accum_alpha_d.size() * sizeof(accum_alpha_d[0]),
+                                                    flag);
 }
 
 void GaussianManager::get_gaussian_raw_data()
@@ -238,6 +243,10 @@ void GaussianManager::get_gaussian_raw_data()
                                                 flag);
 
     geometry_state = GeometryState(xyz_d.size());
+    // binning_state = BinningState(xyz_d.size() * 10);
+
+    binning_state = BinningState(1625771);
+    image_state = ImageState(800 * 800);
     auto addr = GS_Address {
         .xyz_address = xyz_buffer->get_address(),
         .scale_address = scale_buffer->get_address(),
@@ -252,8 +261,15 @@ void GaussianManager::get_gaussian_raw_data()
         .conic_opacity_address = geometry_state.conic_opacity_buffer->get_address(),
         .rgb_address = geometry_state.rgb_buffer->get_address(),
         .tiles_touched_address = geometry_state.tiles_touched_buffer->get_address(),
-        .point_offsets_address = geometry_state.point_offsets_buffer->get_address()
-
+        .point_offsets_address = geometry_state.point_offsets_buffer->get_address(),
+        .point_list_keys_address = binning_state.point_list_key_buffer->get_address(),
+        .point_list_keys_pingpong_address = binning_state.point_list_key_pingpong_buffer->get_address(),
+        .point_list_address = binning_state.point_list_buffer->get_address(),
+        .point_list_pingpong_address = binning_state.point_list_pingpong_buffer->get_address(),
+        // Image
+        .ranges_address = image_state.ranges_buffer->get_address(),
+        .n_contrib_address = image_state.n_contrib_buffer->get_address(),
+        .accum_alpha_address = image_state.accum_alpha_buffer->get_address()
     };
     address = UniformManager::make_uniform({ addr }, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
 }

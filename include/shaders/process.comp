@@ -11,93 +11,6 @@
 #extension GL_EXT_debug_printf : enable
 #include "./push_contant.h"
 
-// layout(set = 0, binding = xyz_index) uniform _xyz
-// {
-//     float xyzs[];
-// };
-// layout(set = 0, binding = scale_index) uniform _scale
-// {
-//     float scales[];
-// };
-
-// layout(set = 0, binding = feature_index) uniform _feature
-// {
-//     float features[];
-// };
-
-// // layout(set = 0, binding = opacity_index) uniform _opacity
-// // {
-// //     float opacties[];
-// // };
-
-// layout(set = 0, binding = rotation_index) uniform _rotation
-// {
-//     // temp ttmp;
-//     float rotations[];
-// };
-
-layout(buffer_reference, scalar) buffer _xyz
-{
-    vec3 xyz[];
-};
-layout(buffer_reference, scalar) readonly buffer _opacity
-{
-    float opacity[];
-};
-layout(buffer_reference, scalar) readonly buffer _scale
-{
-    // float scale[];
-    vec3 scale[];
-};
-layout(buffer_reference, scalar) readonly buffer _rotation
-{
-    // float rotation[];
-    vec4 rotation[];
-};
-layout(buffer_reference, scalar) readonly buffer _feature
-{
-    // float rotation[];
-    vec3 feature[];
-};
-layout(buffer_reference, scalar) buffer _clamped
-{
-    // float rotation[];
-    int clamped[];
-};
-layout(buffer_reference, scalar) buffer _rgb
-{
-    // float rotation[];
-    vec3 rgb[];
-};
-layout(buffer_reference, scalar) buffer _depth
-{
-    // float rotation[];
-    float depth[];
-};
-
-layout(buffer_reference, scalar) buffer _radii
-{
-    // float rotation[];
-    int radii[];
-};
-layout(buffer_reference, scalar) buffer _mean2d
-{
-    // float rotation[];
-    vec2 mean2d[];
-};
-layout(buffer_reference, scalar) buffer _conic_opacity
-{
-    // float rotation[];
-    vec4 conic_opacity[];
-};
-
-layout(buffer_reference, scalar)
-    buffer _tiles_touched
-{
-    // float rotation[];
-    uint tiles_touched[];
-};
-
 layout(binding = eAddress, scalar)
     buffer _Address
 {
@@ -135,12 +48,25 @@ void main()
     // debugPrintfEXT("message %d\n", r);
 
     // return;
-    vec3 p_view;
-    in_frustum(0, xyz_address, gs_camera.viewMatrix, gs_camera.projMatrix, false, p_view);
+
     int idx = int(gl_GlobalInvocationID.x) + int(gl_GlobalInvocationID.y * gl_NumWorkGroups.x);
     if (idx > gs_camera.point_num) {
         return;
     }
+    vec3 p_view;
+    in_frustum(idx, xyz_address, gs_camera.viewMatrix, gs_camera.projMatrix, false, p_view);
+
+    // _xyz xyz1 = _xyz(xyz_address);
+    // // vec3 p_orig = { xyz.xyz[3 * idx], xyz.xyz[3 * idx + 1], xyz.xyz[3 * idx + 2] };
+
+    // vec3 p_orig1 = xyz1.xyz[idx];
+    // if (idx == 12345) {
+    //     debugPrintfEXT("messagein %f %f %f\n", p_orig1.x, p_orig1.y, p_orig1.z);
+    // }
+
+    // if (idx == 12345) {
+    //     debugPrintfEXT("messagepro %f %f %f\n", p_view.x, p_view.y, p_view.z);
+    // }
     // gl_GlobalInvocationIndex
     // debugPrintfEXT("message mocheng %d %d %d\n", gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, idx);
 
@@ -197,19 +123,27 @@ void main()
 
     rgb.rgb[idx] = result;
     depth.depth[idx] = p_view.z;
+
+    // if (idx == 23 || idx == 443 || idx == 86 || idx == 65 || idx == 88 || idx == 89) {
+    //     debugPrintfEXT("message my_radius %f %d |%d\n", my_radius, int(my_radius), idx);
+    // }
+
+    if (int(my_radius) <= 0) {
+        debugPrintfEXT("message my_radiusss idx %d \n", idx);
+    }
     radii.radii[idx] = int(my_radius);
     mean2d.mean2d[idx] = point_image;
     // Inverse 2D covariance and opacity neatly pack into one float4
     conic_opacity.conic_opacity[idx] = vec4(conic.x, conic.y, conic.z, opacity.opacity[idx]);
     tiles_touched.tiles_touched[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
-    if (idx == 12345)
-        debugPrintfEXT("message %d %f %f %f %d %d \n",
-                       tiles_touched.tiles_touched[0],
-                       result.x,
-                       result.y,
-                       result.z,
-                       tiles_touched.tiles_touched[4],
-                       tiles_touched.tiles_touched[5]);
+    // if (idx == 12345)
+    //     debugPrintfEXT("message process %f %f %f %f %d %d \n",
+    //                    p_view.z,
+    //                    result.x,
+    //                    result.y,
+    //                    result.z,
+    //                    tiles_touched.tiles_touched[4],
+    //                    tiles_touched.tiles_touched[5]);
     // int temp[10] = { 1, 2, 3, 4, 5, 6, 1, 1, 1, 1 };
     // int prefix_sum = subgroupInclusiveAdd(temp[gl_LocalInvocationID.x]);
     // debugPrintfEXT("message subgroupInclusiveAdd %d %d\n", gl_LocalInvocationID.x, prefix_sum);

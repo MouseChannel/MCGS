@@ -1,0 +1,223 @@
+/**
+ * VkRadixSort written by Mirco Werner: https://github.com/MircoWerner/VkRadixSort
+ * Based on implementation of Intel's Embree: https://github.com/embree/embree/blob/v4.0.0-ploc/kernels/rthwif/builder/gpu/sort.h
+ */
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_debug_printf : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_atomic_int64 : require
+#extension GL_EXT_shader_subgroup_extended_types_int64 : require
+#extension GL_EXT_scalar_block_layout : enable
+#include "../push_contant.h"
+#define WORKGROUP_SIZE 256 // assert WORKGROUP_SIZE >= RADIX_SORT_BINS
+
+#define RADIX_SORT_BINS 256
+#define SUBGROUP_SIZE 32 // 32 NVIDIA; 64 AMD
+
+// #define BITS 32 // sorting uint32_t
+// #define ITERATIONS 4 // 4 iterations, sorting 8 bits per iteration
+
+#define BITS 64 // sorting uint64_t
+#define ITERATIONS 8 // 8 iterations, sorting 8 bits per iteration
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants
+{
+    uint g_num_elements;
+};
+
+layout(binding = eAddress, scalar) buffer _Address
+{
+    uint64_t xyz_address;
+    uint64_t scale_address;
+    uint64_t feature_address;
+    uint64_t opacity_address;
+    uint64_t rotation_address;
+    uint64_t depth_address;
+    uint64_t clamped_address;
+    uint64_t radii_address;
+    uint64_t mean2d_address;
+    uint64_t conv3d_address;
+    uint64_t conic_opacity_address;
+    uint64_t rgb_address;
+    uint64_t tiles_touched_address;
+    uint64_t point_offsets_address;
+    // binning
+    uint64_t point_list_keys_address;
+    uint64_t point_list_keys_pingpong_address;
+    uint64_t point_list_address;
+    uint64_t point_list_pingpong_address;
+};
+
+layout(std430, set = 0, binding = 0) buffer elements_in
+{
+    uint64_t g_elements_in[];
+};
+
+layout(std430, set = 0, binding = 1) buffer elements_out
+{
+    uint64_t g_elements_out[];
+};
+
+// layout(std430, set = 0, binding = 2) buffer elements_value_in
+// {
+//     uint64_t g_elements_value_in[];
+// };
+
+// layout(std430, set = 0, binding = 3) buffer elements_value_out
+// {
+//     uint64_t g_elements_value_out[];
+// };
+
+shared uint64_t[RADIX_SORT_BINS] histogram;
+shared uint64_t[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
+shared uint64_t[RADIX_SORT_BINS] local_offsets; // local exclusive scan (prefix sum) (inside subgroups)
+shared uint64_t[RADIX_SORT_BINS] global_offsets; // global exclusive scan (prefix sum)
+
+struct BinFlags {
+    uint64_t flags[WORKGROUP_SIZE / BITS];
+};
+shared BinFlags[RADIX_SORT_BINS] bin_flags;
+
+// #define g_elements_in point_list_keys.point_list_keys
+// #define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
+// #define g_elements_value_in point_list.point_list
+// #define g_elements_value_out point_list_pingpong.point_list_pingpong
+
+#define ELEMENT_IN(index, iteration) (iteration % 2 == 0 ? g_elements_in[index] : g_elements_out[index])
+
+// #define ELEMENT_VALUE_IN(index, iteration) (iteration % 2 == 0 ? g_elements_value_in[index] : g_elements_value_out[index])
+#include "../util.glsl"
+void main()
+{
+
+    _point_list point_list = _point_list(point_list_address);
+    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
+    _point_list_pingpong point_list_pingpong = _point_list_pingpong(point_list_pingpong_address);
+    _point_list_keys_pingpong point_list_keys_pingpong = _point_list_keys_pingpong(point_list_keys_pingpong_address);
+
+    // point_list_pingpong.point_list_pingpong[1];
+
+    // debugPrintfEXT("message 1\n" );
+    uint lID = gl_LocalInvocationID.x;
+    uint sID = gl_SubgroupID;
+    uint lsID = gl_SubgroupInvocationID;
+
+    for (uint iteration = 0; iteration < ITERATIONS; iteration++) {
+        uint shift = 8 * iteration;
+
+        // initialize histogram
+        if (lID < RADIX_SORT_BINS) {
+            histogram[lID] = uint64_t(0);
+        }
+        barrier();
+
+        for (uint ID = lID; ID < g_num_elements; ID += WORKGROUP_SIZE) {
+            // determine the bin
+            const uint64_t bin = (ELEMENT_IN(ID, iteration) >> shift) & uint64_t(RADIX_SORT_BINS - 1);
+
+            atomicAdd(histogram[uint(bin)], uint64_t(1));
+        }
+        barrier();
+
+        // subgroup reductions and subgroup prefix sums
+        if (lID < RADIX_SORT_BINS) {
+            uint64_t histogram_count = histogram[lID];
+            uint64_t sum = subgroupAdd(histogram_count);
+            uint64_t prefix_sum = subgroupExclusiveAdd(histogram_count);
+            local_offsets[lID] = prefix_sum;
+            if (subgroupElect()) {
+                // one thread inside the warp/subgroup enters this section
+                sums[sID] = sum;
+            }
+        }
+        barrier();
+
+        // global prefix sums (offsets)
+        if (sID == 0) {
+            uint64_t offset = 0;
+            for (uint i = lsID; i < RADIX_SORT_BINS; i += SUBGROUP_SIZE) {
+                global_offsets[i] = offset + local_offsets[i];
+                offset += sums[i / SUBGROUP_SIZE];
+            }
+        }
+        barrier();
+
+        //     ==== scatter keys according to global offsets =====
+        const uint flags_bin = lID / BITS;
+        const uint64_t flags_bit = 1 << (lID % BITS);
+        // debugPrintfEXT("message bits %u\n", lID % BITS);
+        for (uint blockID = 0; blockID < g_num_elements; blockID += WORKGROUP_SIZE) {
+            barrier();
+
+            const uint ID = blockID + lID;
+
+            // initialize bin flags
+            if (lID < RADIX_SORT_BINS) {
+                for (int i = 0; i < WORKGROUP_SIZE / BITS; i++) {
+                    bin_flags[lID].flags[i] = uint64_t(0); // init all bin flags to 0
+                }
+            }
+            barrier();
+
+            uint64_t element_in = 0;
+            // uint element_value_in = 0;
+            uint64_t element_value_in = 0;
+
+            uint64_t binID = 0;
+            uint64_t binOffset = 0;
+            if (ID < g_num_elements) {
+                element_in = ELEMENT_IN(ID, iteration);
+                // element_value_in = ELEMENT_VALUE_IN(ID, iteration);
+                // debugPrintfEXT("message %lu %lu \n", element_in, element_value_in);
+                binID = (element_in >> shift) & uint64_t(RADIX_SORT_BINS - 1);
+                // offset for group
+                binOffset = global_offsets[uint(binID)];
+                // add bit to flag
+                atomicAdd(bin_flags[uint(binID)].flags[flags_bin], flags_bit);
+            }
+            barrier();
+
+            if (ID < g_num_elements) {
+                // calculate output index of element
+                uint64_t prefix = 0;
+                uint64_t count = 0;
+                for (uint i = 0; i < WORKGROUP_SIZE / BITS; i++) {
+                    const uint64_t bits = bin_flags[uint(binID)].flags[i];
+
+                    const uint full_count = bitCount(uint(bits)) + bitCount(uint(bits >> 32));
+                    uint64_t temp = bits & (flags_bit - 1);
+                    const uint partial_count = bitCount((uint(temp))) + bitCount(uint(temp >> 32));
+
+                    prefix += (i < flags_bin) ? full_count : uint64_t(0);
+                    prefix += (i == flags_bin) ? partial_count : uint64_t(0);
+                    count += full_count;
+                }
+                if (iteration % 2 == 0) {
+                    g_elements_out[uint(binOffset + prefix)] = element_in;
+
+                    // g_elements_value_out[uint(binOffset + prefix)] = element_value_in;
+
+                } else {
+                    g_elements_in[uint(binOffset + prefix)] = element_in;
+                    // debugPrintfEXT("message %lu\n", element_in);
+                    // g_elements_value_in[uint(binOffset + prefix)] = element_value_in;
+                    // g_elements_value_in[uint(binOffset + prefix)] = element_in;
+                }
+                if (prefix == count - 1) {
+                    atomicAdd(global_offsets[uint(binID)], count);
+                }
+            }
+        }
+    }
+    barrier();
+    // if (gl_LocalInvocationID.x == 33 || true) {
+    //     debugPrintfEXT("message sort %lu %lu %lu %lu %lu %lu %lu %lu \n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[3], g_elements_in[4], g_elements_in[5], g_elements_in[6], g_elements_in[7]);
+    // }
+    // debugPrintfEXT("message sort %lu  \n", g_elements_in[12345]);
+}
