@@ -23,8 +23,10 @@ layout(buffer_reference, scalar) buffer _point_offsets
 
     uint point_offsets[];
 };
- 
- 
+// layout(std430, set = 0, binding = 0) buffer elements_in
+// {
+//     uint g_elements_in[];
+// };
 layout(binding = eAddress, scalar)
     buffer _Address
 {
@@ -48,25 +50,34 @@ layout(push_constant) uniform _PushContant
 {
     PushContant_Sum sum_pc;
 };
- 
+
 #define g_elements_in tiles_touched.tiles_touched
- 
+
 void main()
 {
-    // debugPrintfEXT("message %d\n", gl_NumWorkGroups.x);
+    if (gl_GlobalInvocationID.x >= sum_pc.g_num_elements) {
+        return;
+    }
     _tiles_touched tiles_touched = _tiles_touched(tiles_touched_address);
     if (sum_pc.step == -1) {
-        // last_apple();
-        if (gl_GlobalInvocationID.x > gl_WorkGroupSize.x && gl_GlobalInvocationID.x % gl_WorkGroupSize.x != gl_WorkGroupSize.x - 1)
-            g_elements_in[gl_GlobalInvocationID.x] += g_elements_in[gl_GlobalInvocationID.x - gl_LocalInvocationID.x - 1];
 
-        if (gl_GlobalInvocationID.x == 168385) {
-            debugPrintfEXT("message %d\n", g_elements_in[gl_GlobalInvocationID.x]);
+        if (gl_GlobalInvocationID.x >= gl_WorkGroupSize.x && gl_GlobalInvocationID.x % gl_WorkGroupSize.x != gl_WorkGroupSize.x - 1) {
+
+            g_elements_in[gl_GlobalInvocationID.x] += g_elements_in[gl_GlobalInvocationID.x - gl_LocalInvocationID.x - 1];
+            // if (gl_GlobalInvocationID.x == 1024) {
+            // debugPrintfEXT("message1024IN  %d\n", gl_WorkGroupSize.x);
+            // }
         }
+        // debugPrintfEXT("message %u\n", gl_GlobalInvocationID.x);
+
+        // if (1024 > gl_WorkGroupSize.x && 1024 % gl_WorkGroupSize.x != gl_WorkGroupSize.x - 1) {
+        //     bool temp = gl_GlobalInvocationID.x % gl_WorkGroupSize.x != gl_WorkGroupSize.x - 1;
+        //     bool tt = true;
+        //     debugPrintfEXT("message1024  %d %d |%d\n", g_elements_in[gl_GlobalInvocationID.x], temp, tt);
+        // }
         return;
     }
 
-  
     const uint cur_global_index = (gl_GlobalInvocationID.x + 1) * sum_pc.step - 1;
     uint cur = g_elements_in[cur_global_index];
     uint sum = subgroupAdd(cur);
@@ -84,10 +95,6 @@ void main()
     // make current block local up
     if (gl_LocalInvocationID.x >= gl_SubgroupSize && gl_LocalInvocationID.x % gl_SubgroupSize != gl_SubgroupSize - 1) {
         g_elements_in[cur_global_index] += g_elements_in[cur_global_index - gl_SubgroupInvocationID * sum_pc.step - sum_pc.step];
-        // debugPrintfEXT("%d %d %d  %d  \n",
-        //                cur_global_index,
-        //                cur_global_index - gl_SubgroupInvocationID * sum_pc.step - sum_pc.step,
-        //                g_elements_in[cur_global_index],
-        //                g_elements_in[cur_global_index - gl_SubgroupInvocationID * sum_pc.step - 1]);
+        // debugPrintfEXT("message  %u\n", g_elements_in[cur_global_index]);
     }
 }
