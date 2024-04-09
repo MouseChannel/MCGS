@@ -73,15 +73,18 @@ void GaussianManager::Init()
     render_content->Init();
     render_content->Execute();
 
-    std::vector<uint32_t>
-        data1(800 * 800);
+    std::vector<uint64_t>
+        // data1(point_num);
+
+        data1(1625771);
     std::shared_ptr<Buffer> tempbuffer;
     tempbuffer.reset(new Buffer(data1.size() * sizeof(data1[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+
     // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
 
-    Buffer::CopyBuffer(image_state.ranges_buffer, tempbuffer);
+    // Buffer::CopyBuffer(geometry_state.rgb_buffer, tempbuffer);
 
-    // Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
+    Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
 
     // Buffer::CopyBuffer(point_list_value->buffer, tempbuffer);
 
@@ -103,9 +106,9 @@ GaussianManager::GeometryState::GeometryState(int size)
     depth_d.resize(size);
     clamped_d.resize(size * 3);
     radii_d.resize(size);
-    mean2d_d.resize(size);
+    mean2d_d.resize(size * 2);
     cov3d_d.resize(size * 6);
-    conic_opacity_d.resize(size);
+    conic_opacity_d.resize(size * 4);
     rgb_d.resize(size * 3);
     tiles_touched_d.resize(size);
     point_offsets_d.resize(size);
@@ -141,7 +144,7 @@ GaussianManager::GeometryState::GeometryState(int size)
                                                       flag);
     rgb_buffer = Buffer::CreateDeviceBuffer(rgb_d.data(),
                                             rgb_d.size() * sizeof(rgb_d[0]),
-                                            flag);
+                                            flag | vk::BufferUsageFlagBits::eTransferSrc);
     tiles_touched_buffer = Buffer::CreateDeviceBuffer(tiles_touched_d.data(),
                                                       tiles_touched_d.size() * sizeof(tiles_touched_d[0]),
                                                       flag);
@@ -242,7 +245,7 @@ void GaussianManager::get_gaussian_raw_data()
                                                 feature_d.size() * sizeof(feature_d[0]),
                                                 flag);
 
-    geometry_state = GeometryState(xyz_d.size());
+    geometry_state = GeometryState(point_num);
     // binning_state = BinningState(xyz_d.size() * 10);
 
     binning_state = BinningState(1625771);
@@ -251,11 +254,11 @@ void GaussianManager::get_gaussian_raw_data()
         .xyz_address = xyz_buffer->get_address(),
         .scale_address = scale_buffer->get_address(),
         .feature_address = feature_buffer->get_address(),
-        .opacity_address = xyz_buffer->get_address(),
+        .opacity_address = opacity_buffer->get_address(),
         .rotation_address = rotation_buffer->get_address(),
         .depth_address = geometry_state.depth_buffer->get_address(),
         .clamped_address = geometry_state.clamped_buffer->get_address(),
-        .radii_address = geometry_state.clamped_buffer->get_address(),
+        .radii_address = geometry_state.radii_buffer->get_address(),
         .mean2d_address = geometry_state.mean2d_buffer->get_address(),
         .conv3d_address = geometry_state.conv3d_buffer->get_address(),
         .conic_opacity_address = geometry_state.conic_opacity_buffer->get_address(),

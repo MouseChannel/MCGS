@@ -49,7 +49,7 @@ private:
         int scan_size;
         std::vector<float> depth_d;
         std::vector<int> clamped_d;
-        std::vector<float> radii_d;
+        std::vector<int> radii_d;
         std::vector<float> mean2d_d;
         std::vector<float> cov3d_d;
         std::vector<float> conic_opacity_d;
