@@ -103,7 +103,7 @@ void ProcessPass::Execute()
                                    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
                                                     content->get_pipeline()->get_handle());
 
-                                   cmd.dispatch((GaussianManager::Get_Singleton()->get_point_num() + 255) / 256, 256, 1);
+                                   cmd.dispatch(ceil(float(GaussianManager::Get_Singleton()->get_point_num()) / 256), 1, 1);
                                });
 }
 }

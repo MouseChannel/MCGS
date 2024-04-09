@@ -21,9 +21,9 @@ private:
     std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value;
 
     // void record_command();
-    const uint num_element = 10000;
-    const uint num_blocks_per_workgroup = 32;
-    const uint WORKGROUP_SIZE = 256;
+    const uint num_element = 1625771;
+    // const uint num_blocks_per_workgroup = 32;
+    // const uint WORKGROUP_SIZE = 256;
 
     // std::shared_ptr<ComputePass> low_radixsort;
     // std::shared_ptr<ComputePass> high_radixsort;

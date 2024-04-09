@@ -19,10 +19,10 @@ SortPass::SortPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _point_list_key, std
 }
 void SortPass::prepare_shader_pc()
 {
+    // shader_module.reset(
+    //     new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
-    shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
+        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/sort.comp.spv"));
     pc_size = sizeof(PushContant_Sort);
 }
 void SortPass::prepare_descriptorset()
@@ -30,11 +30,11 @@ void SortPass::prepare_descriptorset()
     content->prepare_descriptorset([&]() {
         auto descriptor_manager = content->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(point_list_key,
+        descriptor_manager->Make_DescriptorSet(element_in_data,
                                                0,
                                                DescriptorManager::Compute);
 
-        descriptor_manager->Make_DescriptorSet(point_list_pingpong,
+        descriptor_manager->Make_DescriptorSet(ping_pong_data,
                                                1,
                                                DescriptorManager::Compute);
         // descriptor_manager->Make_DescriptorSet(element_value_in_data,
@@ -119,25 +119,25 @@ void SortPass::Execute()
 
     std::cout << "CPU sort finished in " << cpuSortTime << "[ms]." << std::endl;
 
-    // std::vector<uint64_t> data1(num_element);
-    // std::vector<uint32_t> datatemp(num_element);
-    // // std::vector<uint64_t> data2(num_element);
+    std::vector<uint64_t> data1(num_element);
+    std::vector<uint32_t> datatemp(num_element);
+    // std::vector<uint64_t> data2(num_element);
 
-    // std::shared_ptr<Buffer> tempbuffer;
-    // tempbuffer.reset(new Buffer(element_in.size() * 8, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    // // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
-
+    std::shared_ptr<Buffer> tempbuffer;
+    tempbuffer.reset(new Buffer(element_in.size() * 8, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
     // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
 
-    // auto temp1 = tempbuffer->Get_mapped_data(0);
+    Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
 
-    // // auto temp2 = element_value_in_data->buffer->Get_mapped_data(0);
+    auto temp1 = tempbuffer->Get_mapped_data(0);
 
-    // std::memcpy(data1.data(), temp1.data(), temp1.size());
-    // // std::memcpy(data2.data(), temp2.data(), temp2.size());
-    // for (int i = 0; i < data1.size(); i++) {
-    //     datatemp[i] = data1[i];
-    // }
+    // auto temp2 = element_value_in_data->buffer->Get_mapped_data(0);
+
+    std::memcpy(data1.data(), temp1.data(), temp1.size());
+    // std::memcpy(data2.data(), temp2.data(), temp2.size());
+    for (int i = 0; i < data1.size(); i++) {
+        datatemp[i] = data1[i];
+    }
 
     // int r = data1[];
     int rr = 0;

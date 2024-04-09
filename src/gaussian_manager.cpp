@@ -13,6 +13,7 @@
 #include "shaders/push_contant.h"
 #include "sort_pass.hpp"
 #include "sum_pass.hpp"
+
 namespace MCGS {
 // using namespace MCRT;
 
@@ -73,10 +74,15 @@ void GaussianManager::Init()
     render_content->Init();
     render_content->Execute();
 
-    std::vector<uint64_t>
-        // data1(point_num);
+    // std::vector<uint8_t> raw_img(800 * 800 * 4);
 
-        data1(1625771);
+    // Buffer::CopyBuffer(render_out., std::shared_ptr<Buffer> dst)
+    // stbi_write_png()
+
+    std::vector<uint32_t>
+        data1(800 * 800);
+
+    // data1(1625771);
     std::shared_ptr<Buffer> tempbuffer;
     tempbuffer.reset(new Buffer(data1.size() * sizeof(data1[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
 
@@ -84,9 +90,9 @@ void GaussianManager::Init()
 
     // Buffer::CopyBuffer(geometry_state.rgb_buffer, tempbuffer);
 
-    Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
+    // Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
 
-    // Buffer::CopyBuffer(point_list_value->buffer, tempbuffer);
+    Buffer::CopyBuffer(image_state.ranges_buffer, tempbuffer);
 
     auto temp1 = tempbuffer->Get_mapped_data(0);
     std::memcpy(data1.data(), temp1.data(), data1.size() * sizeof(data1[0]));
@@ -144,7 +150,7 @@ GaussianManager::GeometryState::GeometryState(int size)
                                                       flag);
     rgb_buffer = Buffer::CreateDeviceBuffer(rgb_d.data(),
                                             rgb_d.size() * sizeof(rgb_d[0]),
-                                            flag | vk::BufferUsageFlagBits::eTransferSrc);
+                                            flag);
     tiles_touched_buffer = Buffer::CreateDeviceBuffer(tiles_touched_d.data(),
                                                       tiles_touched_d.size() * sizeof(tiles_touched_d[0]),
                                                       flag);

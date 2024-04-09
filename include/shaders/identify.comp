@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_shader_atomic_int64 : require
+#extension GL_EXT_debug_printf : enable
 // #extension GL_EXT_shader_subgroup_extended_types_int64 : require
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_buffer_reference2 : require
@@ -54,14 +55,19 @@ void main()
     // Read tile ID from key. Update start/end of tile range if at limit.
     uint64_t key = point_list_keys.point_list_keys[idx];
     uint currtile = uint(key >> 32);
-    if (idx == 0)
+    if (idx == 0) {
         ranges.ranges[currtile].x = 0;
-    else {
+
+    } else {
         uint prevtile = uint(point_list_keys.point_list_keys[idx - 1] >> 32);
         if (currtile != prevtile) {
             ranges.ranges[prevtile].y = idx;
             ranges.ranges[currtile].x = idx;
         }
+        // debugPrintfEXT("message%lu  \n", point_list_keys.point_list_keys[3]);
+        // if (prevtile == 2 || currtile == 2) {
+        //     debugPrintfEXT("message %u %u\n", idx, idx);
+        // }
     }
     if (idx == g_num_elements - 1)
         ranges.ranges[currtile].y = g_num_elements;

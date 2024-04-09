@@ -64,6 +64,7 @@ void main()
         min(pix_min.y + BLOCK_Y, 800));
 
     uvec2 pix = uvec2(pix_min.x + gl_LocalInvocationID.x, pix_min.y + gl_LocalInvocationID.y);
+
     uint pix_id = 800 * pix.y + pix.x;
     vec2 pixf = vec2(float(pix.x), float(pix.y));
 
@@ -76,9 +77,12 @@ void main()
     _ranges ranges = _ranges(ranges_address);
     _mean2d mean2d = _mean2d(mean2d_address);
     _conic_opacity conic_opacity = _conic_opacity(conic_opacity_address);
-    _feature feature = _feature(feature_address);
+    _rgb rgb = _rgb(rgb_address);
+    // if (pix.x == 400 && pix.y == 400)
+    // debugPrintfEXT("message flag %f %f %f\n", rgb.rgb[35157].x, rgb.rgb[11111].y, rgb.rgb[11111].z);
     // Load start/end range of IDs to process in bit sorted list.
     uvec2 range = ranges.ranges[gl_WorkGroupID.y * horizontal_blocks + gl_WorkGroupID.x];
+
     const int rounds = int((range.y - range.x + BLOCK_SIZE - 1) / BLOCK_SIZE);
     int toDo = int(range.y - range.x);
     // Initialize helper variables
@@ -88,38 +92,45 @@ void main()
     // float C[3];
     vec3 C = vec3(0.f);
     flag = 0;
-    barrier();
+    // barrier();
+    // if (pix.x == 400 && pix.y == 400) {
+    //     debugPrintfEXT("message %f %f %f %f \n", mean2d.mean2d[1].x, mean2d.mean2d[1].y, conic_opacity.conic_opacity[1].z, conic_opacity.conic_opacity[1].w);
+    // }
 
     // Iterate over batches until all done or range is complete
     for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE) {
-        if (flag > BLOCK_SIZE) {
-            debugPrintfEXT("message BLOCK_SIZE \n");
-            break;
-        }
+        // if (flag >= BLOCK_SIZE) {
+        //     debugPrintfEXT("message BLOCK_SIZE \n");
+        //     break;
+        // }
         // if (subgroupAll(done)) {
         //     break;
         // }
-
+        barrier();
         // Collectively fetch per-Gaussian data from global to shared
         int progress = i * BLOCK_SIZE + int(gl_LocalInvocationIndex);
         if (range.x + progress < range.y) {
-            int coll_id = int(point_list.point_list[range.x + progress]);
-            collected_id[gl_LocalInvocationIndex] = coll_id;
+            uint coll_id = uint(point_list.point_list[range.x + progress]);
+            collected_id[gl_LocalInvocationIndex] = int(coll_id);
             collected_xy[gl_LocalInvocationIndex] = mean2d.mean2d[coll_id];
             collected_conic_opacity[gl_LocalInvocationIndex] = conic_opacity.conic_opacity[coll_id];
+            // if (pix.x == 400 && pix.y == 400)
+            //     debugPrintfEXT("messagemo %u\n", coll_id);
         }
         barrier();
 
         // Iterate over current batch
         for (int j = 0; !done && j < min(BLOCK_SIZE, toDo); j++) {
             // Keep track of current position in range
-            contributor++;
+            // contributor++;
 
             // Resample using conic matrix (cf. "Surface
             // Splatting" by Zwicker et al., 2001)
             vec2 xy = collected_xy[j];
             vec2 d = { xy.x - pixf.x, xy.y - pixf.y };
             vec4 con_o = collected_conic_opacity[j];
+            // if (pix.y == 697 && pix.x == 380 && j == 0)
+            //     debugPrintfEXT("message  pix%f %f \n", con_o.x, con_o.y);
             float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
             if (power > 0.0f)
                 continue;
@@ -134,17 +145,17 @@ void main()
             float test_T = T * (1 - alpha);
             if (test_T < 0.0001f) {
                 done = true;
-                // debugPrintfEXT("message flag %d\n", flag);
-                barrier();
-                flag++;
-                barrier();
+                // barrier();
+                // flag++;
+                // barrier();
                 continue;
             }
 
             // Eq. (3) from 3D Gaussian splatting paper.
-            C += feature.feature[collected_id[j]] * alpha * T;
-            if (pix.x == 400 && pix.y == 400) {
-                debugPrintfEXT("message %f %f %f \n", C.x, C.y, C.z);
+            C += rgb.rgb[collected_id[j]] * alpha * T;
+            if (pix.x == 300 && pix.y == 485) {
+                // debugPrintfEXT("message rgb %f %f %f %d\n", rgb.rgb[collected_id[j]].x, rgb.rgb[collected_id[j]].y, rgb.rgb[collected_id[j]].z, collected_id[j]);
+                // debugPrintfEXT("message %f %f %f\n", C.x, C.y, C.z);
             }
             // for (int ch = 0; ch < CHANNELS; ch++)
             //     C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
@@ -153,7 +164,7 @@ void main()
 
             // Keep track of last range entry to update this
             // pixel.
-            last_contributor = contributor;
+            // last_contributor = contributor;
         }
     }
     // All threads that treat valid pixel write out their final
@@ -164,9 +175,14 @@ void main()
 
         // for (int ch = 0; ch < CHANNELS; ch++)
         //     out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch];
-        if (pix.x == 400 && pix.y == 400) {
-            debugPrintfEXT("message outcolor %f %f %f\n", C.x, C.y, C.z);
+        if (pix.x == 300 && pix.y == 485) {
+            // debugPrintfEXT("message outcolor: %f %f %f\n", C.x, C.y, C.z);
         }
+        // 438 713
+        //  if (C.z < 0.005f && C.z > 0.002f)
+        // {
+        //     debugPrintfEXT("message outcolor: %u %u  \n", pix.x, pix.y);
+        // }
         imageStore(out_img, ivec2(pix), vec4(C, 1.f) + T * 0.f);
     }
 }

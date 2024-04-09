@@ -70,7 +70,12 @@ layout(binding = eAddress, scalar) buffer _Address
     uint64_t point_list_keys_pingpong_address;
     uint64_t point_list_address;
     uint64_t point_list_pingpong_address;
+    // ImageState
+    uint64_t ranges_address;
+    uint64_t n_contrib_address;
+    uint64_t accum_alpha_address;
 };
+
 #define g_elements_in point_list_keys.point_list_keys
 #define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
 #define g_elements_value_in point_list.point_list
@@ -92,7 +97,7 @@ void main()
     uint sID = gl_SubgroupID;
     uint lsID = gl_SubgroupInvocationID;
     // debugPrintfEXT("message %lu\n", g_elements_in[451696]);
-    // debugPrintfEXT("message %d %lu\n", g_num_elements, g_elements_in[12345]);
+    // debugPrintfEXT("message %d %lu\n", g_num_elements, g_elements_in[1]);
     for (uint iteration = 0; iteration < ITERATIONS; iteration++) {
         uint shift = 8 * iteration;
 
@@ -157,9 +162,9 @@ void main()
             if (ID < g_num_elements) {
                 element_in = ELEMENT_IN(ID, iteration);
                 element_value_in = ELEMENT_VALUE_IN(ID, iteration);
-                // if (element_in < 100UL) {
-                //     // debugPrintfEXT("message zero %d %lu\n", ID, element_in);
-                // }
+                if (element_in == 0) {
+                    // debugPrintfEXT("message zero %d %lu\n", ID, element_in);
+                }
                 binID = uint((element_in >> shift)) & uint(RADIX_SORT_BINS - 1);
                 // offset for group
                 binOffset = global_offsets[binID];
@@ -185,10 +190,11 @@ void main()
                     g_elements_value_out[binOffset + prefix] = element_value_in;
                 } else {
                     g_elements_in[binOffset + prefix] = element_in;
+                    // debugPrintfEXT("message  %d %lu\n", binOffset + prefix, element_in);
                     g_elements_value_in[binOffset + prefix] = element_value_in;
 
-                    // if (element_in < 1UL) {
-                    //     debugPrintfEXT("message to bing %d %lu\n", binOffset + prefix, element_in);
+                    // if (g_elements_in[binOffset + prefix] < 1UL) {
+                    //     debugPrintfEXT("message to bing %d %lu %lu\n", binOffset + prefix, g_elements_in[binOffset + prefix], element_in);
                     // }
                 }
                 if (prefix == count - 1) {
@@ -197,6 +203,7 @@ void main()
             }
         }
     }
-    // barrier();
-    // debugPrintfEXT("message %lu %lu %lu %lu %lu %lu\n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[13], g_elements_in[12], g_elements_in[12345]);
+    barrier();
+   
+    // debugPrintfEXT("message %lu %lu %lu %lu %lu %lu\n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[13], g_elements_in[12], g_elements_in[172345]);
 }

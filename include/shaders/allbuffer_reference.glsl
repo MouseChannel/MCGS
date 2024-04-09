@@ -44,7 +44,6 @@ layout(buffer_reference, scalar) buffer _depth_uint
 
 layout(buffer_reference, scalar) buffer _radii
 {
-    // float rotation[];
     int radii[];
 };
 layout(buffer_reference, scalar) buffer _mean2d

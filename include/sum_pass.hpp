@@ -16,6 +16,7 @@ private:
     void execute_first();
     void execute_second();
     void execute_last();
+    void execute_test();
 
     void prepare_buffer() override;
     void prepare_shader_pc() override;

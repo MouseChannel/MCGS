@@ -1,4 +1,5 @@
 #include "Helper/CommandManager.hpp"
+#include "Helper/Model_Loader/ImageWriter.hpp"
 #include "Wrapper/Image.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
@@ -36,6 +37,8 @@ void RasterPass::Execute()
                                                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
                                    cmd.dispatch(50, 50, 1);
                                });
+
+    ImageWriter::WriteImage(render_out);
 }
 void RasterPass::prepare_buffer()
 {
