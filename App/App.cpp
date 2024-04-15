@@ -25,11 +25,11 @@ void App::run()
         imgui->Update(cmd,
                       [&]() {
                           ImGui::Text("im a sentence!");
-                          ImGui::SliderFloat("light_pos_x", &raster_context_pbr::light_pos_x, -2.0f, 2.0f);
-                          ImGui::SliderFloat("light_pos_y", &raster_context_pbr::light_pos_y, -2.0f, 2.0f);
-                          ImGui::SliderFloat("light_pos_z", &raster_context_pbr::light_pos_z, 0.f, 20.0f);
-                          ImGui::Checkbox("use_normal_map", &raster_context_pbr::use_normal_map);
-                          ImGui::Checkbox("rm", &raster_context_pbr::use_r_rm_map);
+                          // ImGui::SliderFloat("light_pos_x", &raster_context_pbr::light_pos_x, -2.0f, 2.0f);
+                          // ImGui::SliderFloat("light_pos_y", &raster_context_pbr::light_pos_y, -2.0f, 2.0f);
+                          // ImGui::SliderFloat("light_pos_z", &raster_context_pbr::light_pos_z, 0.f, 20.0f);
+                          // ImGui::Checkbox("use_normal_map", &raster_context_pbr::use_normal_map);
+                          // ImGui::Checkbox("rm", &raster_context_pbr::use_r_rm_map);
                       });
         context->EndFrame();
     }
