@@ -6,40 +6,38 @@
 #include "gaussian_manager.hpp"
 #include "raster_pass.hpp"
 namespace MCGS {
-void RasterPass::Execute()
+
+void RasterPass::run_pass(vk::CommandBuffer& cmd)
 {
-    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(),
-                               // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
+    cmd.pushConstants<uint32_t>(
+                                      content
+                                          ->get_pipeline()
+                                          ->get_layout(),
+                                      vk::ShaderStageFlagBits::eCompute,
+                                      0,
+                                      1);
 
-                               [&](vk::CommandBuffer& cmd) {
-                                   cmd.pushConstants<uint32_t>(
-                                       content
-                                           ->get_pipeline()
-                                           ->get_layout(),
-                                       vk::ShaderStageFlagBits::eCompute,
-                                       0,
-                                       1);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                           content->get_pipeline()->get_layout(),
+                           0,
+                           content->get_pipeline()->get_descriptor_sets(),
+                           {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                     content->get_pipeline()->get_handle());
 
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          content->get_pipeline()->get_layout(),
-                                                          0,
-                                                          content->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    content->get_pipeline()->get_handle());
-
-                                   cmd.pipelineBarrier2(vk::DependencyInfo()
-                                                            .setMemoryBarriers(
-                                                                vk::MemoryBarrier2()
-                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-                                   cmd.dispatch(50, 50, 1);
-                               });
-
-    ImageWriter::WriteImage(render_out);
+    cmd.pipelineBarrier2(vk::DependencyInfo()
+                             .setMemoryBarriers(
+                                 vk::MemoryBarrier2()
+                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
+    cmd.dispatch(50, 50, 1);
+    // ImageWriter::WriteImage(render_out);
 }
+
+
+
 void RasterPass::prepare_buffer()
 {
     render_out.reset(new Image(800,

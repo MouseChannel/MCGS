@@ -51,7 +51,7 @@ std::vector<std::vector<float>> load_ply(std::string ply_path)
     float* pts = (float*)malloc(numPts * vert_attr * sizeof(float));
 
     float cnt = numPts * vert_attr;
-
+    
     fread(pts, sizeof(float), cnt, fp);
 
     fclose(fp);

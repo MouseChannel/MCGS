@@ -44,7 +44,8 @@ void ProcessPass::prepare_descriptorset()
                                                DescriptorManager::Compute);
     });
 }
-void ProcessPass::Execute()
+
+void ProcessPass::run_pass(vk::CommandBuffer& cmd)
 {
     PushContant_GS pc {
         .viewMatrix = { -.993989f,
@@ -85,25 +86,24 @@ void ProcessPass::Execute()
         .tanfov = 0.36f,
         .point_num = static_cast<int>(GaussianManager::Get_Singleton()->get_point_num())
     };
-    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
-                               [&](vk::CommandBuffer& cmd) {
-                                   cmd
-                                       .pushConstants<PushContant_GS>(
-                                           content
-                                               ->get_pipeline()
-                                               ->get_layout(),
-                                           vk::ShaderStageFlagBits::eCompute,
-                                           0,
-                                           pc);
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          content->get_pipeline()->get_layout(),
-                                                          0,
-                                                          content->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    content->get_pipeline()->get_handle());
+    cmd
+                                      .pushConstants<PushContant_GS>(
+                                          content
+                                              ->get_pipeline()
+                                              ->get_layout(),
+                                          vk::ShaderStageFlagBits::eCompute,
+                                          0,
+                                          pc);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                           content->get_pipeline()->get_layout(),
+                           0,
+                           content->get_pipeline()->get_descriptor_sets(),
+                           {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                     content->get_pipeline()->get_handle());
 
-                                   cmd.dispatch(ceil(float(GaussianManager::Get_Singleton()->get_point_num()) / 256), 1, 1);
-                               });
+    cmd.dispatch(ceil(float(GaussianManager::Get_Singleton()->get_point_num()) / 256), 1, 1);
 }
+
+ 
 }

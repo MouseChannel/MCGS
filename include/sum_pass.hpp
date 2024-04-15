@@ -6,11 +6,12 @@ using namespace MCRT;
 class SumPass : public GSPassBase {
 
 public:
-    void Execute() override;
+  
     // void set_address(std::shared_ptr<Uniform_Stuff<GS_Address>> _address)
     // {
     //     address = _address;
     // }
+    void run_pass(vk::CommandBuffer& cmd) override;
 
 private:
     void execute_first();

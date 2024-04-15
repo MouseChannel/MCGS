@@ -5,6 +5,7 @@
 #include "Wrapper/Buffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
+#include "chrono"
 #include "duplicateWithKeys_pass.hpp"
 #include "identify_pass.hpp"
 #include "ply_loader.hpp"
@@ -13,6 +14,8 @@
 #include "shaders/push_contant.h"
 #include "sort_pass.hpp"
 #include "sum_pass.hpp"
+#include "Wrapper/Device.hpp"
+#include "Helper/Model_Loader/ImageWriter.hpp"
 
 namespace MCGS {
 // using namespace MCRT;
@@ -38,7 +41,6 @@ void GaussianManager::Init()
     precess_context.reset(new ProcessPass);
     // precess_context->set_address(address);
     precess_context->Init();
-    precess_context->Execute();
 
     // std::vector<uint64_t> data1(16257710);
 
@@ -61,24 +63,55 @@ void GaussianManager::Init()
 
     sort_context.reset(new SortPass(point_list_key, point_list_value));
     sort_context->Init();
-
-    sum_context->Execute();
-    duplicate_context->Execute();
-    sort_context->Execute();
-
     identify_content.reset(new IdentifyPass);
     identify_content->Init();
-    identify_content->Execute();
-
     render_content.reset(new RasterPass);
     render_content->Init();
-    render_content->Execute();
 
+
+
+
+    {
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    
+    
+        CommandManager::ExecuteCmd(
+            Context::Get_Singleton()->get_device()->Get_Compute_queue(),
+            [&](vk::CommandBuffer& cmd) {
+    
+                precess_context->run_pass(cmd);
+                sum_context->run_pass(cmd);
+                duplicate_context->run_pass(cmd);
+                sort_context->run_pass(cmd);
+                identify_content->run_pass(cmd);
+                render_content->run_pass(cmd);
+    
+            }
+            );
+
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        double gpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) * std::pow(10, -3));
+        std::cout << "lastmocheng " << gpuSortTime << "[ms]." << std::endl;
+    }
+        ImageWriter::WriteImage(render_content->render_out);
+
+    throw std::runtime_error("here");
+
+   
+    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+
+    // identify_content->Execute();
+
+    // render_content->Execute();
+    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
+
+    std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
     // std::vector<uint8_t> raw_img(800 * 800 * 4);
 
     // Buffer::CopyBuffer(render_out., std::shared_ptr<Buffer> dst)
     // stbi_write_png()
-
+    assert(false);
     std::vector<uint32_t>
         data1(800 * 800);
 
@@ -199,14 +232,14 @@ GaussianManager::ImageState::ImageState(int size)
 
 void GaussianManager::get_gaussian_raw_data()
 {
-    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/assets/point_cloud.ply");
+    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/point_cloud.ply");
     auto xyz_d = MCGS::get_xyz(gs_data);
     for (int i = 0; i < xyz_d.size() / 3; i++) {
 
         // glm::make_vec3({ xyz_d[i * 3], xyz_d[i * 3 + 1], xyz_d[i * 3 + 2] });
     }
 
-    std::vector<glm::vec3> xyz_3 {
+    std::vector<glm::vec3> xyz_3{
         xyz_d.begin(),
         xyz_d.end() - 3
     };
@@ -256,7 +289,7 @@ void GaussianManager::get_gaussian_raw_data()
 
     binning_state = BinningState(1625771);
     image_state = ImageState(800 * 800);
-    auto addr = GS_Address {
+    auto addr = GS_Address{
         .xyz_address = xyz_buffer->get_address(),
         .scale_address = scale_buffer->get_address(),
         .feature_address = feature_buffer->get_address(),

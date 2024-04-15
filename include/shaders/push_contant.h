@@ -1,4 +1,3 @@
-
 #ifdef __cplusplus
 #pragma once
 #include "glm/glm.hpp"
@@ -15,7 +14,7 @@ using vec3 = glm::vec3;
 #endif
 
 BEGIN_ENUM(Gaussian_Data_Index)
-xyz_index = 0,
+    xyz_index = 0,
     scale_index = 1,
     feature_index = 2,
     opacity_index = 3,
@@ -34,7 +33,8 @@ xyz_index = 0,
 
     render_out_index = 10 END_ENUM();
 
-struct PushContant_GS {
+struct PushContant_GS
+{
     mat4 viewMatrix;
     mat4 projMatrix;
     vec3 campos;
@@ -42,7 +42,8 @@ struct PushContant_GS {
     int point_num;
 };
 
-struct GS_Address {
+struct GS_Address
+{
     uint64_t xyz_address;
     uint64_t scale_address;
     uint64_t feature_address;
@@ -68,16 +69,22 @@ struct GS_Address {
     uint64_t accum_alpha_address;
 };
 
-struct PushContant_Sort {
+struct PushContant_Sort
+{
     uint g_num_elements;
 };
-struct PushContant_Sum {
+
+struct PushContant_Sum
+{
     int step;
     uint g_num_elements;
 };
-struct PushContant_Dup {
+
+struct PushContant_Dup
+{
     uint g_num_elements;
 };
+
 // struct TT {
 //     int a[];
 // };

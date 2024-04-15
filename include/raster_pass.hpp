@@ -7,11 +7,12 @@ class RasterPass : public GSPassBase {
 
 public:
     RasterPass() = default;
-    void Execute() override;
+    void run_pass(vk::CommandBuffer& cmd) override;
+    // void Execute() override;
    
 
-private:
     std::shared_ptr<MCRT::Image> render_out;
+private:
 
     void prepare_buffer() override;
     void prepare_shader_pc() override;

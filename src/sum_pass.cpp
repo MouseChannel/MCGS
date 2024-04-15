@@ -254,43 +254,92 @@ void SumPass::execute_test()
                                    cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
                                });
 }
-void SumPass::Execute()
+
+void SumPass::run_pass(vk::CommandBuffer& cmd)
 {
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    // execute_first();
-    // execute_second();
-    // execute_last();
-    execute_test();
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    double gpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) * std::pow(10, -3));
-    std::cout << "GPU sum finished in " << gpuSortTime << "[ms]." << std::endl;
+    PushContant_Sum pc {
+        .step = 1,
+        .g_num_elements = GaussianManager::Get_Singleton()->get_point_num()
+        // .g_num_elements = num_element
 
-    // GaussianManager::Get_Singleton()->get_buffer_addr();
-    // std::vector<uint32_t>
-    //     data1(GaussianManager::Get_Singleton()->get_point_num());
+    };
+      cmd.pushConstants<PushContant_Sum>(
+                                       content
+                                           ->get_pipeline()
+                                           ->get_layout(),
+                                       vk::ShaderStageFlagBits::eCompute,
+                                       0,
+                                       pc);
 
-    // std::shared_ptr<Buffer> tempbuffer;
-    // tempbuffer.reset(new Buffer(data1.size() * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    // // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
+                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                                                          content->get_pipeline()->get_layout(),
+                                                          0,
+                                                          content->get_pipeline()->get_descriptor_sets(),
+                                                          {});
+                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                                                    content->get_pipeline()->get_handle());
 
-    // Buffer::CopyBuffer(, tempbuffer);
+                                   cmd.pipelineBarrier2(vk::DependencyInfo()
+                                                            .setMemoryBarriers(
+                                                                vk::MemoryBarrier2()
+                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-    // // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
+                                   cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
+                                   // second
+                                   pc.step = 1024;
+                                   cmd.pushConstants<PushContant_Sum>(
+                                       content
+                                           ->get_pipeline()
+                                           ->get_layout(),
+                                       vk::ShaderStageFlagBits::eCompute,
+                                       0,
+                                       pc);
+                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                                                          content->get_pipeline()->get_layout(),
+                                                          0,
+                                                          content->get_pipeline()->get_descriptor_sets(),
+                                                          {});
+                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                                                    content->get_pipeline()->get_handle());
 
-    // auto temp1 = tempbuffer->Get_mapped_data(0);
+                                   cmd.pipelineBarrier2(vk::DependencyInfo()
+                                                            .setMemoryBarriers(
+                                                                vk::MemoryBarrier2()
+                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-    // std::memcpy(data1.data(), temp1.data(), temp1.size());
+                                   cmd.dispatch(1, 1, 1);
+                                   // last
+                                   pc.step = -1;
+                                   cmd.pushConstants<PushContant_Sum>(
+                                       content
+                                           ->get_pipeline()
+                                           ->get_layout(),
+                                       vk::ShaderStageFlagBits::eCompute,
+                                       0,
+                                       pc);
+                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                                                          content->get_pipeline()->get_layout(),
+                                                          0,
+                                                          content->get_pipeline()->get_descriptor_sets(),
+                                                          {});
+                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                                                    content->get_pipeline()->get_handle());
 
-    // auto cpuarr = element_in;
-    // for (int i = 1; i < cpuarr.size(); i++) {
-    //     cpuarr[i] += cpuarr[i - 1];
-    // }
-    // for (int i = 0; i < cpuarr.size(); i++) {
-    //     if (cpuarr[i] != data1[i]) {
-    //         int s = 0;
-    //     }
-    // }
-    // // int r = data1[168385];
-    // int rr = 0;
+                                   cmd.pipelineBarrier2(vk::DependencyInfo()
+                                                            .setMemoryBarriers(
+                                                                vk::MemoryBarrier2()
+                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
+
+                                   cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
 }
+ 
 }

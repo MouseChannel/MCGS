@@ -1,4 +1,3 @@
-
 #version 460
 
 #extension GL_GOOGLE_include_directive : enable
@@ -32,12 +31,12 @@ layout(binding = eAddress, scalar) buffer _Address
     uint64_t rgb_address;
     uint64_t tiles_touched_address;
     uint64_t point_offsets_address;
-    // BinningState
+// BinningState
     uint64_t point_list_keys_address;
     uint64_t point_list_keys_pingpong_address;
     uint64_t point_list_address;
     uint64_t point_list_pingpong_address;
-    // ImageState
+// ImageState
     uint64_t ranges_address;
     uint64_t n_contrib_address;
     uint64_t accum_alpha_address;
@@ -70,5 +69,5 @@ void main()
         // }
     }
     if (idx == g_num_elements - 1)
-        ranges.ranges[currtile].y = g_num_elements;
+    ranges.ranges[currtile].y = g_num_elements;
 }

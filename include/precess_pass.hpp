@@ -6,7 +6,8 @@ using namespace MCRT;
 class ProcessPass : public GSPassBase {
 
 public:
-    void Execute() override;
+    
+    void run_pass(vk::CommandBuffer& cmd) override;
     // void set_address(std::shared_ptr<Uniform_Stuff<GS_Address>> _address)
     // {
     //     address = _address;

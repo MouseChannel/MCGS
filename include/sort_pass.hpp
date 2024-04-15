@@ -6,7 +6,8 @@ class SortPass : public GSPassBase {
 
 public:
     SortPass(std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_key, std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value);
-    void Execute() override;
+ 
+    void run_pass(vk::CommandBuffer& cmd) override;
 
 private:
     void prepare_buffer() override;
