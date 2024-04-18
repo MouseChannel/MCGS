@@ -6,14 +6,17 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_arithmetic : enable
-#extension GL_KHR_shader_subgroup_ballot : enable
-
 #extension GL_EXT_debug_printf : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_atomic_int64 : require
+#extension GL_EXT_shader_subgroup_extended_types_int64 : require
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_KHR_shader_subgroup_ballot : require
+
 #define WORKGROUP_SIZE 256 // assert WORKGROUP_SIZE >= RADIX_SORT_BINS
 #define RADIX_SORT_BINS 256
 #define SUBGROUP_SIZE 32 // 32 NVIDIA; 64 AMD
-
-#define BITS 32 // sorting uint32_t
 
 layout(local_size_x = WORKGROUP_SIZE) in;
 
@@ -25,17 +28,21 @@ layout(push_constant, std430) uniform PushConstants
     uint g_num_blocks_per_workgroup;
 };
 
-layout(std430, set = 1, binding = 0) buffer elements_in
+// uint g_num_elements;
+// uint g_shift;
+// uint g_num_workgroups;
+// uint g_num_blocks_per_workgroup;
+layout(std430, set = 0, binding = 0) buffer elements_in
 {
-    uint g_elements_in[];
+    uint64_t g_elements_in[];
 };
 
-layout(std430, set = 1, binding = 1) buffer elements_out
+layout(std430, set = 0, binding = 1) buffer elements_out
 {
-    uint g_elements_out[];
+    uint64_t g_elements_out[];
 };
 
-layout(std430, set = 1, binding = 2) buffer histograms
+layout(std430, set = 0, binding = 4) buffer histograms
 {
     // [histogram_of_workgroup_0 | histogram_of_workgroup_1 | ... ]
     uint g_histograms[]; // |g_histograms| = RADIX_SORT_BINS * #WORKGROUPS = RADIX_SORT_BINS * g_num_workgroups
@@ -45,14 +52,60 @@ shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
 shared uint[RADIX_SORT_BINS] global_offsets; // global exclusive scan (prefix sum)
 
 struct BinFlags {
-    uint flags[WORKGROUP_SIZE / BITS];
+    uint flags[WORKGROUP_SIZE / 32];
 };
 shared BinFlags[RADIX_SORT_BINS] bin_flags;
 
+#include "../allbuffer_reference.glsl"
+#include "../push_contant.h"
+
+// layout(binding = eAddress, scalar) buffer _Address
+//{
+//     uint64_t xyz_address;
+//     uint64_t scale_address;
+//     uint64_t feature_address;
+//     uint64_t opacity_address;
+//     uint64_t rotation_address;
+//     uint64_t depth_address;
+//     uint64_t clamped_address;
+//     uint64_t radii_address;
+//     uint64_t mean2d_address;
+//     uint64_t conv3d_address;
+//     uint64_t conic_opacity_address;
+//     uint64_t rgb_address;
+//     uint64_t tiles_touched_address;
+//     uint64_t point_offsets_address;
+//// BinningState
+//    uint64_t point_list_keys_address;
+//    uint64_t point_list_keys_pingpong_address;
+//    uint64_t point_list_address;
+//    uint64_t point_list_pingpong_address;
+//// ImageState
+//    uint64_t ranges_address;
+//    uint64_t n_contrib_address;
+//    uint64_t accum_alpha_address;
+//    uint64_t histograms_address;
+//};
+//
+// #define g_histograms histograms.histograms
+//
+// #define g_elements_in point_list_keys.point_list_keys
+// #define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
+// #define g_elements_value_in point_list.point_list
+// #define g_elements_value_out point_list_pingpong.point_list_pingpong
+
+// #define ELEMENT_IN(index, iteration) (iteration % 2 == 0 ? g_elements_in[index] : g_elements_out[index])
+
+// #define ELEMENT_VALUE_IN(index, iteration) (iteration % 2 == 0 ? g_elements_value_in[index] : g_elements_value_out[index])
 void main()
 {
-    // debugPrintfEXT("message 2\n");
-    // debugPrintfEXT("messagehere %d  \n", g_elements_in[0]);
+    //    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
+    //    _point_list_keys_pingpong point_list_keys_pingpong = _point_list_keys_pingpong(point_list_keys_pingpong_address);
+    //
+    //    _point_list point_list = _point_list(point_list_address);
+    //    _point_list_pingpong point_list_pingpong = _point_list_pingpong(point_list_pingpong_address);
+    //
+    //    _histograms histograms = _histograms(histograms_address);
 
     uint gID = gl_GlobalInvocationID.x;
     uint lID = gl_LocalInvocationID.x;
@@ -63,7 +116,7 @@ void main()
     uint local_histogram = 0;
     uint prefix_sum = 0;
     uint histogram_count = 0;
-
+    // debugPrintfEXT("message \n");
     if (lID < RADIX_SORT_BINS) {
         uint count = 0;
         for (uint j = 0; j < g_num_workgroups; j++) {
@@ -88,27 +141,26 @@ void main()
     }
 
     //     ==== scatter keys according to global offsets =====
-    const uint flags_bin = lID / BITS;
-    const uint flags_bit = 1 << (lID % BITS);
+    const uint flags_bin = lID / 32;
+    const uint flags_bit = 1 << (lID % 32);
 
     for (uint index = 0; index < g_num_blocks_per_workgroup; index++) {
         uint elementId = wID * g_num_blocks_per_workgroup * WORKGROUP_SIZE + index * WORKGROUP_SIZE + lID;
 
         // initialize bin flags
         if (lID < RADIX_SORT_BINS) {
-            for (int i = 0; i < WORKGROUP_SIZE / BITS; i++) {
+            for (int i = 0; i < WORKGROUP_SIZE / 32; i++) {
                 bin_flags[lID].flags[i] = 0U; // init all bin flags to 0
             }
         }
         barrier();
 
-        uint element_in = 0;
+        uint64_t element_in = 0;
         uint binID = 0;
         uint binOffset = 0;
         if (elementId < g_num_elements) {
             element_in = g_elements_in[elementId];
-
-            binID = (element_in >> g_shift) & uint(RADIX_SORT_BINS - 1);
+            binID = uint(element_in >> g_shift) & uint(RADIX_SORT_BINS - 1);
             // offset for group
             binOffset = global_offsets[binID];
             // add bit to flag
@@ -117,11 +169,10 @@ void main()
         barrier();
 
         if (elementId < g_num_elements) {
-
             // calculate output index of element
             uint prefix = 0;
             uint count = 0;
-            for (uint i = 0; i < WORKGROUP_SIZE / BITS; i++) {
+            for (uint i = 0; i < WORKGROUP_SIZE / 32; i++) {
                 const uint bits = bin_flags[binID].flags[i];
                 const uint full_count = bitCount(bits);
                 const uint partial_count = bitCount(bits & (flags_bit - 1));
@@ -130,11 +181,19 @@ void main()
                 count += full_count;
             }
             g_elements_out[binOffset + prefix] = element_in;
+            // if (element_in == 107268965) {
+            //     debugPrintfEXT("message11 %u %u  %u\n", index, binOffset, prefix);
+            // }
             if (prefix == count - 1) {
                 atomicAdd(global_offsets[binID], count);
             }
         }
+        // if (gl_LocalInvocationID.x == 0)
+        //     debugPrintfEXT("message %u ", g_shift);
 
         barrier();
+        // if (gl_GlobalInvocationID.x == 0) {
+        //     debugPrintfEXT("message11234 %lu  \n", g_elements_out[13]);
+        // }
     }
 }

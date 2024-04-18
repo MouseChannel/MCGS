@@ -67,11 +67,20 @@ struct GS_Address
     uint64_t ranges_address;
     uint64_t n_contrib_address;
     uint64_t accum_alpha_address;
+
+    uint64_t histograms_address;
 };
 
 struct PushContant_Sort
 {
     uint g_num_elements;
+};
+struct PushContant_SortHisgram
+{
+    uint g_num_elements;
+    uint g_shift;
+    uint g_num_workgroups;
+    uint g_num_blocks_per_workgroup;
 };
 
 struct PushContant_Sum

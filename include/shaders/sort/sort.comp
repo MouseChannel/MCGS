@@ -26,16 +26,7 @@ layout(push_constant, std430) uniform PushConstants
     uint g_num_elements;
 };
 
-// layout(std430, set = 0, binding = 0) buffer elements_in
-// {
-//     uint64_t g_elements_in[];
-// };
-
-// layout(std430, set = 0, binding = 1) buffer elements_out
-// {
-//     uint64_t g_elements_out[];
-// };
-
+ 
 shared uint[RADIX_SORT_BINS] histogram;
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
 shared uint[RADIX_SORT_BINS] local_offsets; // local exclusive scan (prefix sum) (inside subgroups)

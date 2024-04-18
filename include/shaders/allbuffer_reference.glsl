@@ -70,6 +70,12 @@ layout(buffer_reference, scalar)
     uint64_t point_list[];
 };
 layout(buffer_reference, scalar)
+buffer _histograms
+{
+
+    uint histograms[];
+};
+layout(buffer_reference, scalar)
     buffer _point_list_pingpong
 {
     uint64_t point_list_pingpong[];

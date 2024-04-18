@@ -70,79 +70,21 @@ void GaussianManager::Init()
     render_content.reset(new RasterPass);
     render_content->Init();
 
-    //
-    // {
-    //     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    // std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     //
     //
-    //     CommandManager::ExecuteCmd(
-    //         Context::Get_Singleton()->get_device()->Get_Compute_queue(),
-    //         [&](vk::CommandBuffer& cmd) {
+    // std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    // auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
     //
-    //             precess_context->run_pass(cmd);
-    //             sum_context->run_pass(cmd);
-    //             duplicate_context->run_pass(cmd);
-    //             sort_context->run_pass(cmd);
-    //             identify_content->run_pass(cmd);
-    //             render_content->run_pass(cmd);
+    // std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
     //
-    //         }
-    //         );
-    //
-    //     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    //     double gpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) * std::pow(10, -3));
-    //     std::cout << "lastmocheng " << gpuSortTime << "[ms]." << std::endl;
-    // }
-    //     // ImageWriter::WriteImage(render_content->render_out);
 
-    // throw std::runtime_error("here");
-
-    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
-
-    // identify_content->Execute();
-
-    // render_content->Execute();
-    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
-    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
-
-    std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
-    // std::vector<uint8_t> raw_img(800 * 800 * 4);
-
-    // Buffer::CopyBuffer(render_out., std::shared_ptr<Buffer> dst)
-    // stbi_write_png()
-    // assert(false);
-    // std::vector<uint32_t>
-    //     data1(800 * 800);
-    //
-    // // data1(1625771);
-    // std::shared_ptr<Buffer> tempbuffer;
-    // tempbuffer.reset(new Buffer(data1.size() * sizeof(data1[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    //
-    // // Buffer::CopyBuffer(element_in_data->buffer, tempbuffer);
-    //
-    // // Buffer::CopyBuffer(geometry_state.rgb_buffer, tempbuffer);
-    //
-    // // Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
-    //
-    // Buffer::CopyBuffer(image_state.ranges_buffer, tempbuffer);
-    //
-    // auto temp1 = tempbuffer->Get_mapped_data(0);
-    // std::memcpy(data1.data(), temp1.data(), data1.size() * sizeof(data1[0]));
-    // // int r = geometry_state.tiles_touched_d[168385];
-    // int rr = 0;
-    // for (int i = 0; i < data1.size(); i++) {
-    //     if (data1[i] != 12345) {
-    //         // std::cout << 12344 << std::endl;
-    //     }
-    // }
-    // // 954565595133
-    // std::cout << "here" << std::endl;
 }
 
 
 void GaussianManager::Tick()
 {
-    auto context =precess_context->get_context();
+    auto context = precess_context->get_context();
     auto cmd = context->BeginFrame();
     precess_context->run_pass(cmd->get_handle());
     sum_context->run_pass(cmd->get_handle());
@@ -212,6 +154,7 @@ GaussianManager::BinningState::BinningState(int size)
     point_list_key_d.resize(size);
     point_list_pingpong_d.resize(size);
     point_list_key_pingpong_d.resize(size);
+    histograms_d.resize(size);
     auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR | vk::BufferUsageFlagBits::eTransferSrc;
     point_list_buffer = Buffer::CreateDeviceBuffer(point_list_d.data(),
                                                    point_list_d.size() * sizeof(point_list_d[0]),
@@ -225,6 +168,9 @@ GaussianManager::BinningState::BinningState(int size)
     point_list_key_pingpong_buffer = Buffer::CreateDeviceBuffer(point_list_key_pingpong_d.data(),
                                                                 point_list_key_pingpong_d.size() * sizeof(point_list_key_pingpong_d[0]),
                                                                 flag);
+    histograms_buffer = Buffer::CreateDeviceBuffer(histograms_d.data(),
+                                                   histograms_d.size() * sizeof(histograms_d[0]),
+                                                   flag);
 }
 
 GaussianManager::ImageState::ImageState(int size)

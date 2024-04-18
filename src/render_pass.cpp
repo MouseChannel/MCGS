@@ -34,6 +34,7 @@ void RasterPass::run_pass(vk::CommandBuffer& cmd)
                                      .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
     cmd.dispatch(50, 50, 1);
     // ImageWriter::WriteImage(render_out);
+    // std::cout<<"tick"<<std::endl;
 }
 
 

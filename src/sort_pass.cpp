@@ -71,6 +71,7 @@ void SortPass::prepare_buffer()
     ping_pong.resize(1625771);
 
     ping_pong_value.resize(num_element);
+    histograms.resize(num_element);
 
     element_in_data = UniformManager::make_uniform(element_in,
                                                    vk::ShaderStageFlagBits::eCompute,
@@ -88,16 +89,17 @@ void SortPass::prepare_buffer()
                                                         vk::ShaderStageFlagBits::eCompute,
                                                         vk::DescriptorType::eStorageBuffer,
                                                         vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+
+    histograms_data = UniformManager::make_uniform(histograms,vk::ShaderStageFlagBits::eCompute,
+                                                        vk::DescriptorType::eStorageBuffer,
+                                                        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 }
 
 void SortPass::run_pass(vk::CommandBuffer& cmd)
 {
 
     PushContant_Sort pc {
-      
-        .g_num_elements = 1625771,
-
-      
+        .g_num_elements = 1625771,      
     };
 
     cmd.pushConstants<PushContant_Sort>(
@@ -132,14 +134,10 @@ void SortPass::execute(uint offset)
 {
 
     PushContant_Sort pc {
-        // .g_num_elements = GaussianManager::Get_Singleton()->get_point_num() * 10,
+        
         .g_num_elements = 1625771,
 
-        // .g_num_elements = num_element,
-
-        // .g_shift = offset,
-        // .g_num_workgroups = size_x,
-        // .g_num_blocks_per_workgroup = num_blocks_per_workgroup
+        
     };
 
     CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(),

@@ -28,18 +28,25 @@
 #include "Rendering/AntiAliasing/TAA/TAA_Manager.hpp"
 #include "Rendering/PBR/IBL_Manager.hpp"
 #include "gaussian_manager.hpp"
+#include "sort_histogram_pass.hpp"
+#include "sort_multi_pass.hpp"
 #include "sort_pass.hpp"
+
+#include "sort_histogram_pass2.hpp"
+#include "sort_multi_pass2.hpp"
+
 #include "sum_pass.hpp"
 
-#include <duplicateWithKeys_pass.hpp>
+#include "Helper/CommandManager.hpp"
 #include <Helper/Model_Loader/ImageWriter.hpp>
+#include <duplicateWithKeys_pass.hpp>
 #include <execution>
 #include <identify_pass.hpp>
 #include <precess_pass.hpp>
 #include <raster_pass.hpp>
 
 namespace MCRT {
-std::unique_ptr<Context> Context::_instance{ new MCRT::raster_context_pbr };
+std::unique_ptr<Context> Context::_instance { new MCRT::raster_context_pbr };
 // float raster_context_pbr::light_pos_x = 0, raster_context_pbr::light_pos_y = 0, raster_context_pbr::light_pos_z = 5, raster_context_pbr::gamma = 2.2f;
 // bool raster_context_pbr::use_normal_map = false, raster_context_pbr::use_r_rm_map = false, raster_context_pbr::use_ao = false;
 // int irradiance_size = 512;
@@ -63,30 +70,10 @@ raster_context_pbr::~raster_context_pbr()
 void raster_context_pbr::prepare(std::shared_ptr<Window> window)
 {
     raster_context::prepare(window);
-    // m_camera->m_position.z = 3;
-    // sky_box.reset(new Skybox("/home/mocheng/project/MCRT/assets/Cubemap/kart_club_4k.hdr"));
-    // skybox_mesh = GLTF_Loader::load_skybox("/home/mocheng/project/MCRT/assets/cube.gltf");
 
-    // GLTF_Loader::load_model("/home/mocheng/project/MCRT/assets/Drill_01_4k.gltf/Drill_01_4k.gltf");
-    // GLTF_Loader::load_model("/home/mocheng/project/MCRT/assets/pbr/temp/untitl1.gltf");
-    // Obj_loader::load_model("/home/mocheng/project/MCRT/assets/untitled.obj");
-    // IBLManager::Get_Singleton()->Init(sky_box);
-    MCGS::GaussianManager::Get_Singleton()->Init();
-    // NoiseManager::Get_Singleton()->InitPerlinNoise();
+    // MCGS::GaussianManager::Get_Singleton()->Init();
 
-    // std::shared_ptr<MCGS::SortPass> sort_pass;
-    // sort_pass.reset(new MCGS::SortPass);
-    // sort_pass->Init();
-    // sort_pass->Execute();
-
-    // std::shared_ptr<MCGS::SumPass> sum_pass;
-    // sum_pass.reset(new MCGS::SumPass);
-    // sum_pass->Init();
-    // sum_pass->Execute();
-
-    // MCGS::SortPass::Get_Singleton()->execute();
-
-    std::vector<uint32_t> indices{
+    std::vector<uint32_t> indices {
         0,
         1,
         2,
@@ -98,27 +85,111 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
 
     index_buffer = Buffer::CreateDeviceBuffer(indices.data(), indices.size() * sizeof(indices[0]), vk::BufferUsageFlagBits::eIndexBuffer);
 
-    std::vector<Vertex> vertex{
-        Vertex{
-            .pos{ 1.0f, -1.0f, 0 },
-            .texCoord{ 1.0f, 1.0f } },
-        Vertex{
-            .pos{ -1.0f, 1.0f, 0 },
-            .texCoord{ 0.0f, 0.0f } },
-        Vertex{
-            .pos{ -1.0f, -1.0f, 0 },
-            .texCoord{ 0.0f, 1.0f } },
-        Vertex{
-            .pos{ 1.0f, 1.0f, 0 },
-            .texCoord{ 1.0f, 0.0f } },
+    std::vector<Vertex> vertex {
+        Vertex {
+            .pos { 1.0f, -1.0f, 0 },
+            .texCoord { 1.0f, 1.0f } },
+        Vertex {
+            .pos { -1.0f, 1.0f, 0 },
+            .texCoord { 0.0f, 0.0f } },
+        Vertex {
+            .pos { -1.0f, -1.0f, 0 },
+            .texCoord { 0.0f, 1.0f } },
+        Vertex {
+            .pos { 1.0f, 1.0f, 0 },
+            .texCoord { 1.0f, 0.0f } },
     };
     m_vertex_buffer = Buffer::CreateDeviceBuffer(vertex.data(), vertex.size() * sizeof(vertex[0]), vk::BufferUsageFlagBits::eVertexBuffer);
+
+    //
+
+    std::shared_ptr<MCGS::SortHistogramPass> sorthistogrampass;
+    std::shared_ptr<MCGS::SortHistogramPass2> sorthistogrampass2;
+    sorthistogrampass.reset(new MCGS::SortHistogramPass);
+    sorthistogrampass->Init();
+    sorthistogrampass2.reset(new MCGS::SortHistogramPass2(sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
+
+    sorthistogrampass2->Init();
+    std::shared_ptr<MCGS::SortMultiPass> sortmultipass;
+    std::shared_ptr<MCGS::SortMultiPass2> sortmultipass2;
+    sortmultipass.reset(new MCGS::SortMultiPass(sorthistogrampass->element_in_data, sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
+    sortmultipass->Init();
+    sortmultipass2.reset(new MCGS::SortMultiPass2(sorthistogrampass->element_in_data, sortmultipass->ping_pong_data, sorthistogrampass->histograms_data));
+
+    sortmultipass2->Init();
+    // auto cmd = sorthistogrampass->get_context()->BeginFrame();
+    // for (uint i = 0; i < 8; i++) {
+    //     PushContant_SortHisgram pc {
+    //         .g_num_elements = 1625771,
+    //         .g_shift = i * 8,
+    //         .g_num_workgroups = uint(ceil((float)1625771 / 256.f)),
+    //         .g_num_blocks_per_workgroup = 32,
+    //     };
+    //     sorthistogrampass->pc = pc;
+    //     sortmultipass->pc = pc;
+
+    //     sorthistogrampass->run_pass(cmd->get_handle());
+    //     sortmultipass->run_pass(cmd->get_handle());
+    // }
+    // sorthistogrampass->get_context()->Submit();
+
+    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+    //
+    //
+    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(), [&](vk::CommandBuffer& cmd) {
+        for (uint i = 0; i < 8; i++) {
+            PushContant_SortHisgram pc {
+                .g_num_elements = sortmultipass->num_element,
+                .g_shift = i * 8,
+                .g_num_workgroups = uint(ceil((float)sortmultipass->num_element / 256.f / 32.f)),
+                .g_num_blocks_per_workgroup = 32,
+            };
+            sorthistogrampass->pc = pc;
+            sortmultipass->pc = pc;
+            sorthistogrampass2->pc = pc;
+            sortmultipass2->pc = pc;
+            if (i % 2 == 0) {
+                sorthistogrampass->run_pass(cmd);
+                sortmultipass->run_pass(cmd);
+            } else {
+                sorthistogrampass2->run_pass(cmd);
+                sortmultipass2->run_pass(cmd);
+            }
+        }
+    });
+
+    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
+
+    std::cout << "cost  :" << cpuSortTime << std::endl;
+
+    std::vector<uint64_t> temp(1000000);
+    std::shared_ptr<Buffer> tempbuffer;
+    tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+    Buffer::CopyBuffer(sorthistogrampass->element_in_data->buffer, tempbuffer);
+    auto temp1 = tempbuffer->Get_mapped_data(0);
+    std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
+    for (auto u : temp) {
+        if (u == 105922436u) {
+            int asswd = 3;
+        }
+    }
+    int r = 0;
+    std::sort(sorthistogrampass->element_in.begin(), sorthistogrampass->element_in.end());
+    auto& te = sorthistogrampass->element_in;
+    for (int i = 0; i < te.size(); i++) {
+        if (te[i] != temp[i]) {
+            std::cout << "failed" << std::endl;
+            break;
+        }
+    }
+
+    /////
 
     PASS.resize(1);
 
     {
-
-        PASS[Pass_index::Graphic] = std::shared_ptr<GraphicPass>{ new GraphicPass(m_device) };
+        PASS[Pass_index::Graphic] = std::shared_ptr<GraphicPass> { new GraphicPass(m_device) };
         Context::Get_Singleton()
             ->get_graphic_context()
             ->set_constants_size(sizeof(PC_Raster));
@@ -136,26 +207,15 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
         graphic_context->prepare_descriptorset([&]() {
             auto descriptor_manager = graphic_context->get_descriptor_manager();
 
-          
-            descriptor_manager->Make_DescriptorSet(std::vector{ MCGS::GaussianManager::Get_Singleton()->render_content->render_out },
+            descriptor_manager->Make_DescriptorSet(std::vector { MCGS::GaussianManager::Get_Singleton()->render_content->render_out },
                                                    DescriptorManager::Graphic,
                                                    1,
                                                    vk::DescriptorType::eCombinedImageSampler,
-                                                   vk::ShaderStageFlagBits::eCompute|vk::ShaderStageFlagBits::eFragment);
-
+                                                   vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eFragment);
         });
         graphic_context->prepare_pipeline(graphic_shader_modules, { graphic_context->get_descriptor_manager()->get_DescriptorSet(DescriptorManager::Graphic) }, sizeof(PC_Raster));
 
         graphic_context->post_prepare();
-    }
-
-    {
-        // IBLManager::Get_Singleton()->pre_compute_irradiance();
-        // IBLManager::Get_Singleton()->pre_compute_LUT();
-
-        
-        // ImageWriter::WriteImage(IBLManager::Get_Singleton()->get_LUT());
-        // ImageWriter::WriteCubemap(IBLManager::Get_Singleton()->get_irradiance()->get_handle());
     }
 }
 
@@ -163,14 +223,14 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::Begin_Frame()
 {
 
     CommandManager::ExecuteCmd(Context::Get_Singleton()
-                               ->get_device()
-                               ->Get_Graphic_queue(),
+                                   ->get_device()
+                                   ->Get_Graphic_queue(),
                                [&](vk::CommandBuffer& cmd) {
                                    cmd.updateBuffer<Camera_matrix>(camera_matrix->buffer->get_handle(),
                                                                    0,
-                                                                   Camera_matrix{
-                                                                       .view{ m_camera->Get_v_matrix() },
-                                                                       .project{ m_camera->Get_p_matrix() } });
+                                                                   Camera_matrix {
+                                                                       .view { m_camera->Get_v_matrix() },
+                                                                       .project { m_camera->Get_p_matrix() } });
                                });
 
     // BeginComputeFrame();
@@ -198,8 +258,7 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
         cmd->get_handle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                              render_context->get_pipeline()->get_layout(),
                                              0,
-                                             {
-                                                 render_context->get_pipeline()->get_descriptor_sets()
+                                             { render_context->get_pipeline()->get_descriptor_sets()
 
                                              },
 
@@ -208,7 +267,7 @@ std::shared_ptr<CommandBuffer> raster_context_pbr::BeginGraphicFrame()
         cmd->get_handle().bindVertexBuffers(0, { m_vertex_buffer->get_handle() }, { 0 });
         render_context->record_command(cmd);
         cmd->get_handle()
-           .drawIndexed(6, 1, 0, 0, 0);
+            .drawIndexed(6, 1, 0, 0, 0);
     }
 
     return cmd;
@@ -220,6 +279,5 @@ void raster_context_pbr::EndGraphicFrame()
     m_render_context->Submit();
     m_render_context->EndFrame();
 }
-
 
 }

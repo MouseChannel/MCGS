@@ -15,6 +15,7 @@ class RasterPass;
 class GaussianManager : public Instance_base<GaussianManager> {
 public:
     void Init();
+    void Tick();
     auto get_buffer_addr()
     {
         return address;
@@ -24,9 +25,19 @@ public:
         return point_num;
     }
 
+
+
+    std::shared_ptr<ProcessPass> precess_context;
+    std::shared_ptr<SumPass> sum_context;
+
+    std::shared_ptr<duplicatePass> duplicate_context;
+    std::shared_ptr<SortPass> sort_context;
+    std::shared_ptr<IdentifyPass> identify_content;
+    std::shared_ptr<RasterPass> render_content;
+
 private:
     void get_gaussian_raw_data();
-    std::shared_ptr<Image> render_out;
+    // std::shared_ptr<Image> render_out;
     std::shared_ptr<Uniform_Stuff<float>> xyz;
     std::shared_ptr<Uniform_Stuff<float>> scale;
     std::shared_ptr<Uniform_Stuff<float>> feature;
@@ -75,11 +86,15 @@ private:
         std::vector<uint64_t> point_list_d;
         std::vector<uint64_t> point_list_key_pingpong_d;
         std::vector<uint64_t> point_list_pingpong_d;
+        std::vector<uint32_t> histograms_d;
+
+
         std::shared_ptr<Buffer> point_list_key_buffer;
         std::shared_ptr<Buffer> point_list_buffer;
 
         std::shared_ptr<Buffer> point_list_key_pingpong_buffer;
         std::shared_ptr<Buffer> point_list_pingpong_buffer;
+        std::shared_ptr<Buffer>histograms_buffer;
 
     } binning_state;
     struct ImageState {
@@ -97,13 +112,7 @@ private:
     } image_state;
 
     // GeometryState geometry_state;
-    std::shared_ptr<ProcessPass> precess_context;
-    std::shared_ptr<SumPass> sum_context;
-
-    std::shared_ptr<duplicatePass> duplicate_context;
-    std::shared_ptr<SortPass> sort_context;
-    std::shared_ptr<IdentifyPass> identify_content;
-    std::shared_ptr<RasterPass> render_content;
+   
 
     std::vector<uint64_t> point_list_keyd;
 
