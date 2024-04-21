@@ -28,16 +28,17 @@
 #include "Rendering/AntiAliasing/TAA/TAA_Manager.hpp"
 #include "Rendering/PBR/IBL_Manager.hpp"
 #include "gaussian_manager.hpp"
-#include "sort_histogram_pass.hpp"
-#include "sort_multi_pass.hpp"
+// #include "sort_histogram_pass.hpp"
+// #include "sort_multi_pass.hpp"
 #include "sort_pass.hpp"
 
-#include "sort_histogram_pass2.hpp"
-#include "sort_multi_pass2.hpp"
+// #include "sort_histogram_pass2.hpp"
+// #include "sort_multi_pass2.hpp"
 
 #include "sum_pass.hpp"
 
 #include "Helper/CommandManager.hpp"
+#include "sort/sort_manager.hpp"
 #include <Helper/Model_Loader/ImageWriter.hpp>
 #include <duplicateWithKeys_pass.hpp>
 #include <execution>
@@ -102,71 +103,66 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     m_vertex_buffer = Buffer::CreateDeviceBuffer(vertex.data(), vertex.size() * sizeof(vertex[0]), vk::BufferUsageFlagBits::eVertexBuffer);
 
     //
+    std::shared_ptr<MCGS::SortManager> sortmanager;
+    sortmanager.reset(new MCGS::SortManager);
+    sortmanager->Init();
 
-    std::shared_ptr<MCGS::SortHistogramPass> sorthistogrampass;
-    std::shared_ptr<MCGS::SortHistogramPass2> sorthistogrampass2;
-    sorthistogrampass.reset(new MCGS::SortHistogramPass);
-    sorthistogrampass->Init();
-    sorthistogrampass2.reset(new MCGS::SortHistogramPass2(sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
 
-    sorthistogrampass2->Init();
-    std::shared_ptr<MCGS::SortMultiPass> sortmultipass;
-    std::shared_ptr<MCGS::SortMultiPass2> sortmultipass2;
-    sortmultipass.reset(new MCGS::SortMultiPass(sorthistogrampass->element_in_data, sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
-    sortmultipass->Init();
-    sortmultipass2.reset(new MCGS::SortMultiPass2(sorthistogrampass->element_in_data, sortmultipass->ping_pong_data, sorthistogrampass->histograms_data));
+    vk::CommandBuffer temp11 { VK_NULL_HANDLE };
+    sortmanager->run_pass(temp11);
+    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(), [&](vk::CommandBuffer& cmd) {
+    // });
 
-    sortmultipass2->Init();
-    // auto cmd = sorthistogrampass->get_context()->BeginFrame();
-    // for (uint i = 0; i < 8; i++) {
-    //     PushContant_SortHisgram pc {
-    //         .g_num_elements = 1625771,
-    //         .g_shift = i * 8,
-    //         .g_num_workgroups = uint(ceil((float)1625771 / 256.f)),
-    //         .g_num_blocks_per_workgroup = 32,
-    //     };
-    //     sorthistogrampass->pc = pc;
-    //     sortmultipass->pc = pc;
-
-    //     sorthistogrampass->run_pass(cmd->get_handle());
-    //     sortmultipass->run_pass(cmd->get_handle());
-    // }
-    // sorthistogrampass->get_context()->Submit();
-
-    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     //
+
     //
-    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(), [&](vk::CommandBuffer& cmd) {
-        for (uint i = 0; i < 8; i++) {
-            PushContant_SortHisgram pc {
-                .g_num_elements = sortmultipass->num_element,
-                .g_shift = i * 8,
-                .g_num_workgroups = uint(ceil((float)sortmultipass->num_element / 256.f / 32.f)),
-                .g_num_blocks_per_workgroup = 32,
-            };
-            sorthistogrampass->pc = pc;
-            sortmultipass->pc = pc;
-            sorthistogrampass2->pc = pc;
-            sortmultipass2->pc = pc;
-            if (i % 2 == 0) {
-                sorthistogrampass->run_pass(cmd);
-                sortmultipass->run_pass(cmd);
-            } else {
-                sorthistogrampass2->run_pass(cmd);
-                sortmultipass2->run_pass(cmd);
-            }
-        }
-    });
 
-    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
-    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
+    // std::shared_ptr<MCGS::SortHistogramPass> sorthistogrampass;
+    // std::shared_ptr<MCGS::SortHistogramPass2> sorthistogrampass2;
+    // sorthistogrampass.reset(new MCGS::SortHistogramPass);
+    // sorthistogrampass->Init();
+    // sorthistogrampass2.reset(new MCGS::SortHistogramPass2(sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
 
-    std::cout << "cost  :" << cpuSortTime << std::endl;
+    // sorthistogrampass2->Init();
+    // std::shared_ptr<MCGS::SortMultiPass> sortmultipass;
+    // std::shared_ptr<MCGS::SortMultiPass2> sortmultipass2;
+    // sortmultipass.reset(new MCGS::SortMultiPass(sorthistogrampass->element_in_data, sorthistogrampass->ping_pong_data, sorthistogrampass->histograms_data));
+    // sortmultipass->Init();
+    // sortmultipass2.reset(new MCGS::SortMultiPass2(sorthistogrampass->element_in_data, sortmultipass->ping_pong_data, sorthistogrampass->histograms_data));
+
+    // sortmultipass2->Init();
+
+    // std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+    // //
+    // //
+    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(), [&](vk::CommandBuffer& cmd) {
+    //     for (uint i = 0; i < 8; i++) {
+    //         PushContant_SortHisgram pc {
+    //             .g_num_elements = sortmultipass->num_element,
+    //             .g_shift = i * 8,
+    //             .g_num_workgroups = uint(ceil((float)sortmultipass->num_element / 256.f / 32.f)),
+    //             .g_num_blocks_per_workgroup = 32,
+    //         };
+    //         sorthistogrampass->pc = pc;
+    //         sortmultipass->pc = pc;
+    //         sorthistogrampass2->pc = pc;
+    //         sortmultipass2->pc = pc;
+    //         if (i % 2 == 0) {
+    //             sorthistogrampass->run_pass(cmd);
+    //             sortmultipass->run_pass(cmd);
+    //         } else {
+    //             sorthistogrampass2->run_pass(cmd);
+    //             sortmultipass2->run_pass(cmd);
+    //         }
+    //     }
+    // });
+
+  
 
     std::vector<uint64_t> temp(1000000);
     std::shared_ptr<Buffer> tempbuffer;
     tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    Buffer::CopyBuffer(sorthistogrampass->element_in_data->buffer, tempbuffer);
+    Buffer::CopyBuffer(sortmanager->element_in_buffer, tempbuffer);
     auto temp1 = tempbuffer->Get_mapped_data(0);
     std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
     for (auto u : temp) {
@@ -175,8 +171,8 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
         }
     }
     int r = 0;
-    std::sort(sorthistogrampass->element_in.begin(), sorthistogrampass->element_in.end());
-    auto& te = sorthistogrampass->element_in;
+    std::sort(sortmanager->element_in.begin(), sortmanager->element_in.end());
+    auto& te = sortmanager->element_in;
     for (int i = 0; i < te.size(); i++) {
         if (te[i] != temp[i]) {
             std::cout << "failed" << std::endl;
@@ -279,5 +275,4 @@ void raster_context_pbr::EndGraphicFrame()
     m_render_context->Submit();
     m_render_context->EndFrame();
 }
-
 }

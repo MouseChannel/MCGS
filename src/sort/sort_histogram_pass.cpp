@@ -1,4 +1,4 @@
-#include "sort_histogram_pass2.hpp"
+#include "sort/sort_histogram_pass.hpp"
 #include "Helper/CommandManager.hpp"
 #include "Wrapper/CommandBuffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
@@ -8,21 +8,19 @@
 #include <chrono>
 #include <random>
 namespace MCGS {
-
-SortHistogramPass2::SortHistogramPass2(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
-                                       std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data)
+SortHistogramPass::SortHistogramPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
+                                     std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
+                                     std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
+                                     std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
+    : element_in_data(_element_in_data)
+    , ping_pong_data(_pingpong_data)
+    , histograms_data(_histograms_data)
+    , test_data(_test_data)
 {
-    element_in_data = _element_in_data;
-    histograms_data = _histograms_data;
 }
-void SortHistogramPass2::run_pass(vk::CommandBuffer& cmd)
+
+void SortHistogramPass::run_pass(vk::CommandBuffer& cmd)
 {
-    // PushContant_SortHisgram pc {
-    //     .g_num_elements = 1625771,
-    //     .g_shift = 0,
-    //     .g_num_blocks_per_workgroup = 32,
-    //     .g_num_workgroups = uint(ceil((float)num_element / 256.f)),
-    // };
 
     cmd.pushConstants<PushContant_SortHisgram>(
         content
@@ -50,12 +48,12 @@ void SortHistogramPass2::run_pass(vk::CommandBuffer& cmd)
     cmd.dispatch(ceil((float)num_element / 256.f / 32.f), 1, 1);
 }
 
-void SortHistogramPass2::prepare_buffer()
+void SortHistogramPass::prepare_buffer()
 {
     // element_in.resize(num_element);
     // std::random_device rd;
     // std::mt19937 gen(123);
-    // std::uniform_int_distribution<uint32_t> distrib(0, 0x0FFFFFFFF);
+    // std::uniform_int_distribution<uint64_t> distrib(0, 0x0FFFFFFFFFFF);
     // // element_in.resize(GaussianManager::Get_Singleton()->get_point_num());
     // element_in.resize(num_element);
     // // element_value_in.resize(1625771);
@@ -63,7 +61,7 @@ void SortHistogramPass2::prepare_buffer()
     // for (int i = 0; i < element_in.size(); i++) {
 
     //     element_in[i] = distrib(gen);
-    //     element_in[i] <<= 32;
+    //     // element_in[i] <<= 32;
     //     // if (i < 66) {
     //     //     element_in[i] *= -1;
     //     // }
@@ -71,7 +69,7 @@ void SortHistogramPass2::prepare_buffer()
     //     // element_in[i] <<= 12;
     // }
 
-    // histograms.resize(num_element);
+    // histograms.resize(ceil((float)num_element / 256.f / 32.f) * 256);
     // ping_pong.resize(num_element);
     // element_in_data = UniformManager::make_uniform(element_in,
     //                                                vk::ShaderStageFlagBits::eCompute,
@@ -81,37 +79,44 @@ void SortHistogramPass2::prepare_buffer()
     //                                                vk::ShaderStageFlagBits::eCompute,
     //                                                vk::DescriptorType::eStorageBuffer,
     //                                                vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-   
+    // ping_pong_data = UniformManager::make_uniform(ping_pong,
+    //                                               vk::ShaderStageFlagBits::eCompute,
+    //                                               vk::DescriptorType::eStorageBuffer,
+    //                                               vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 }
 
-void SortHistogramPass2::prepare_shader_pc()
+void SortHistogramPass::prepare_shader_pc()
 {
     shader_module.reset(
         new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort_histograms.comp.spv"));
     pc_size = sizeof(PushContant_SortHisgram);
 }
 
-void SortHistogramPass2::prepare_descriptorset()
+void SortHistogramPass::prepare_descriptorset()
 {
     content->prepare_descriptorset([&]() {
         auto descriptor_manager = content->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(element_in_data,
-                                               0,
+        // descriptor_manager->Make_DescriptorSet(element_in_data,
+        //                                        0,
+        //                                        DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(ping_pong_data,
+        //                                        1,
+        //                                        DescriptorManager::Compute);
+
+        // descriptor_manager->Make_DescriptorSet(histograms_data,
+        //                                        4,
+        //                                        DescriptorManager::Compute);
+
+        // descriptor_manager->Make_DescriptorSet(test_data,
+        //                                        22,
+        //                                        DescriptorManager::Compute);
+
+        descriptor_manager->Make_DescriptorSet(test_data,
+                                               22,
                                                DescriptorManager::Compute);
 
-        descriptor_manager->Make_DescriptorSet(histograms_data,
-                                               4,
-                                               DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(element_value_in_data,
-        //                                        2,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(ping_pong_value_data,
-        //                                        3,
-        //                                        DescriptorManager::Compute);
-        // descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
-        //                                        (int)Gaussian_Data_Index::eAddress,
-        //                                        DescriptorManager::Compute);
-    });
+        
+        });
 }
 }

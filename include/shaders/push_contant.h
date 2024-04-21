@@ -71,6 +71,14 @@ struct GS_Address
     uint64_t histograms_address;
 };
 
+
+struct TestAddr {
+    uint64_t element_in_address;
+    uint64_t pinigpong_address;
+    uint64_t histograms_address;
+};
+
+
 struct PushContant_Sort
 {
     uint g_num_elements;
@@ -81,7 +89,8 @@ struct PushContant_SortHisgram
     uint g_shift;
     uint g_num_workgroups;
     uint g_num_blocks_per_workgroup;
-};
+    uint pass;
+    };
 
 struct PushContant_Sum
 {

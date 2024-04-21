@@ -1,4 +1,4 @@
-#include "sort_multi_pass.hpp"
+#include "sort/sort_multi_pass.hpp"
 #include "Helper/CommandManager.hpp"
 #include "Wrapper/CommandBuffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
@@ -6,15 +6,17 @@
 #include "gaussian_manager.hpp"
 #include "shaders/push_contant.h"
 #include <chrono>
-#include <random>
 #include <cmath>
+#include <random>
+
 namespace MCGS {
 
-SortMultiPass::SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data, std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data, std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data)
+SortMultiPass::SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data, std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data, std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data, std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
 {
     element_in_data = _element_in_data;
     histograms_data = _histograms_data;
     ping_pong_data = _pingpong_data;
+    test_data = _test_data;
 }
 
 void SortMultiPass::run_pass(vk::CommandBuffer& cmd)
@@ -27,12 +29,12 @@ void SortMultiPass::run_pass(vk::CommandBuffer& cmd)
     // };
 
     cmd.pushConstants<PushContant_SortHisgram>(
-                                       content
-                                           ->get_pipeline()
-                                           ->get_layout(),
-                                       vk::ShaderStageFlagBits::eCompute,
-                                       0,
-                                       pc);
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        pc);
 
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                            content->get_pipeline()->get_layout(),
@@ -68,35 +70,42 @@ void SortMultiPass::prepare_buffer()
 void SortMultiPass::prepare_shader_pc()
 {
     shader_module.reset(
-       new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort.comp.spv"));
+        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort.comp.spv"));
     pc_size = sizeof(PushContant_SortHisgram);
 }
 
 void SortMultiPass::prepare_descriptorset()
 {
     content->prepare_descriptorset([&]() {
-       auto descriptor_manager = content->get_descriptor_manager();
+        auto descriptor_manager = content->get_descriptor_manager();
 
-       descriptor_manager->Make_DescriptorSet(element_in_data,
-                                              0,
-                                              DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(element_in_data,
+        //                                        0,
+        //                                        DescriptorManager::Compute);
 
-        descriptor_manager->Make_DescriptorSet(ping_pong_data,
-                                               1,
-                                               DescriptorManager::Compute);
-        
-       descriptor_manager->Make_DescriptorSet(histograms_data,
-                                              4,
-                                              DescriptorManager::Compute);
-       // descriptor_manager->Make_DescriptorSet(element_value_in_data,
-       //                                        2,
-       //                                        DescriptorManager::Compute);
-       // descriptor_manager->Make_DescriptorSet(ping_pong_value_data,
-       //                                        3,
-       //                                        DescriptorManager::Compute);
-       // descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
-       //                                        (int)Gaussian_Data_Index::eAddress,
-       //                                        DescriptorManager::Compute);
-   });
+        // descriptor_manager->Make_DescriptorSet(ping_pong_data,
+        //                                        1,
+        //                                        DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(ping_pong_data,
+        //                                        2,
+        //                                        DescriptorManager::Compute);
+
+        // descriptor_manager->Make_DescriptorSet(element_in_data,
+        //                                        3,
+        //                                        DescriptorManager::Compute);
+
+        // descriptor_manager->Make_DescriptorSet(histograms_data,
+        //                                        4,
+        //                                        DescriptorManager::Compute);
+
+
+        descriptor_manager->Make_DescriptorSet(test_data,22,DescriptorManager::Compute);
+
+
+
+
+
+
+        });
 }
 }

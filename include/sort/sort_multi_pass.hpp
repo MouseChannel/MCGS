@@ -1,20 +1,22 @@
-// #include "Rendering/ComputePass.hpp"
+#pragma once
 #include "GSPassBase.hpp"
 namespace MCGS {
 using namespace MCRT;
-class SortHistogramPass : public GSPassBase {
+class SortMultiPass : public GSPassBase {
 
 public:
-    // SortHistogramPass();
+    SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
+                  std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
+                  std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
+                  std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data);
 
     void run_pass(vk::CommandBuffer& cmd) override;
-
+    PushContant_SortHisgram pc;
     // private:
     void prepare_buffer() override;
     void prepare_shader_pc() override;
     void prepare_descriptorset() override;
-    void record_command(vk::CommandBuffer& cmd);
-        PushContant_SortHisgram pc;
+
     // void execute(uint offset);
 
     // std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_key;
@@ -32,13 +34,13 @@ public:
 
     // std::shared_ptr<ComputePass> sort_content;
     using temptype = uint64_t;
-    std::vector<temptype> element_in;
-    std::vector<temptype> ping_pong;
+    // std::vector<temptype> element_in;
+    // std::vector<temptype> ping_pong;
     // std::shared_ptr<Buffer> element_in_buffer;
     // std::vector<uint32_t> zeros;
     // std::vector<uint32_t> element_value_in;
     // std::vector<uint32_t> ping_pong_value;
-    std::vector<uint32_t> histograms;
+    // std::vector<uint32_t> histograms;
 
     std::shared_ptr<Uniform_Stuff<temptype>> element_in_data;
     std::shared_ptr<Uniform_Stuff<temptype>> ping_pong_data;
@@ -54,5 +56,6 @@ public:
 
     // std::shared_ptr<Buffer> zero_buffer;
     // std::shared_ptr<Buffer> histograms_buffer;
-};
+    std::shared_ptr<Uniform_Stuff<TestAddr>> test_data;
+    };
 }

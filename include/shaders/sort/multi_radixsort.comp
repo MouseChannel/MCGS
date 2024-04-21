@@ -26,26 +26,58 @@ layout(push_constant, std430) uniform PushConstants
     uint g_shift;
     uint g_num_workgroups;
     uint g_num_blocks_per_workgroup;
+    uint pass;
 };
 
 // uint g_num_elements;
 // uint g_shift;
 // uint g_num_workgroups;
 // uint g_num_blocks_per_workgroup;
-layout(std430, set = 0, binding = 0) buffer elements_in
-{
-    uint64_t g_elements_in[];
-};
+// layout(std430, set = 0, binding = 0) buffer elements_in1
+// {
+//     uint64_t g_elements_in1[];
+// };
 
-layout(std430, set = 0, binding = 1) buffer elements_out
-{
-    uint64_t g_elements_out[];
-};
+// layout(std430, set = 0, binding = 1) buffer elements_out1
+// {
+//     uint64_t g_elements_out1[];
+// };
 
-layout(std430, set = 0, binding = 4) buffer histograms
+// layout(std430, set = 0, binding = 2) buffer elements_in2
+// {
+//     uint64_t g_elements_in2[];
+// };
+
+// layout(std430, set = 0, binding = 3) buffer elements_out2
+// {
+//     uint64_t g_elements_out2[];
+// };
+
+// layout(std430, set = 0, binding = 4) buffer histograms
+// {
+//     // [histogram_of_workgroup_0 | histogram_of_workgroup_1 | ... ]
+//     uint g_histograms[]; // |g_histograms| = RADIX_SORT_BINS * #WORKGROUPS = RADIX_SORT_BINS * g_num_workgroups
+// };
+
+layout(buffer_reference, scalar) buffer _g_elements_in1
 {
-    // [histogram_of_workgroup_0 | histogram_of_workgroup_1 | ... ]
-    uint g_histograms[]; // |g_histograms| = RADIX_SORT_BINS * #WORKGROUPS = RADIX_SORT_BINS * g_num_workgroups
+    uint64_t g_elements_in1[];
+};
+layout(buffer_reference, scalar) buffer _g_elements_in2
+{
+    uint64_t g_elements_in2[];
+};
+layout(buffer_reference, scalar) readonly buffer _histograms
+{
+    uint g_histograms[];
+};
+#include "../push_contant.h"
+layout(binding = eAddress, scalar) buffer _Address
+{
+
+    uint64_t element_in_address;
+    uint64_t pinigpong_address;
+    uint64_t histograms_address;
 };
 
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
@@ -56,8 +88,11 @@ struct BinFlags {
 };
 shared BinFlags[RADIX_SORT_BINS] bin_flags;
 
-#include "../allbuffer_reference.glsl"
-#include "../push_contant.h"
+// #include "../allbuffer_reference.glsl"
+
+// #define g_elements_in(pass, index) (pass % 2 == 0 ? g_elements_in1[index] : g_elements_in2[index])
+// #define g_elements_out(pass, index) (pass % 2 == 0 ? g_elements_out1[index] : g_elements_out2[index])
+// #define g_elements_in(pass,index) (g_elements_in1)
 
 // layout(binding = eAddress, scalar) buffer _Address
 //{
@@ -105,7 +140,10 @@ void main()
     //    _point_list point_list = _point_list(point_list_address);
     //    _point_list_pingpong point_list_pingpong = _point_list_pingpong(point_list_pingpong_address);
     //
-    //    _histograms histograms = _histograms(histograms_address);
+    _g_elements_in1 g_elements_in1 = _g_elements_in1(element_in_address);
+    _g_elements_in2 g_elements_in2 = _g_elements_in2(pinigpong_address);
+
+    _histograms histograms = _histograms(histograms_address);
 
     uint gID = gl_GlobalInvocationID.x;
     uint lID = gl_LocalInvocationID.x;
@@ -120,7 +158,7 @@ void main()
     if (lID < RADIX_SORT_BINS) {
         uint count = 0;
         for (uint j = 0; j < g_num_workgroups; j++) {
-            const uint t = g_histograms[RADIX_SORT_BINS * j + lID];
+            const uint t = histograms.g_histograms[RADIX_SORT_BINS * j + lID];
             local_histogram = (j == wID) ? count : local_histogram;
             count += t;
         }
@@ -159,7 +197,13 @@ void main()
         uint binID = 0;
         uint binOffset = 0;
         if (elementId < g_num_elements) {
-            element_in = g_elements_in[elementId];
+            // element_in = g_elements_in[elementId];
+            if (pass % 2 == 0) {
+                element_in = g_elements_in1.g_elements_in1[elementId];
+            } else {
+                element_in = g_elements_in2.g_elements_in2[elementId];
+            }
+
             binID = uint(element_in >> g_shift) & uint(RADIX_SORT_BINS - 1);
             // offset for group
             binOffset = global_offsets[binID];
@@ -180,10 +224,20 @@ void main()
                 prefix += (i == flags_bin) ? partial_count : 0U;
                 count += full_count;
             }
-            g_elements_out[binOffset + prefix] = element_in;
-            // if (element_in == 107268965) {
-            //     debugPrintfEXT("message11 %u %u  %u\n", index, binOffset, prefix);
-            // }
+            // g_elements_out[binOffset + prefix] = element_in;
+            // todo
+            if (pass % 2 == 0) {
+
+                // g_elements_out1[binOffset + prefix] = element_in;
+                // g_elements_in1.g_elements_in1[binOffset + prefix] = element_in;
+                g_elements_in2.g_elements_in2[binOffset + prefix] = element_in;
+
+            } else {
+                 
+                g_elements_in1.g_elements_in1[binOffset + prefix] = element_in;
+            }
+
+             
             if (prefix == count - 1) {
                 atomicAdd(global_offsets[binID], count);
             }
