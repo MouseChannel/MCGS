@@ -47,72 +47,74 @@ layout(push_constant, std430) uniform PushConstants
 //     uint g_histograms[]; // |g_histograms| = RADIX_SORT_BINS * #WORKGROUPS
 // };
 
-layout(buffer_reference, scalar) buffer _g_elements_in1
-{
-    uint64_t g_elements_in1[];
-};
+// layout(buffer_reference, scalar) buffer _g_elements_in1
+// {
+//     uint64_t g_elements_in1[];
+// };
 
-layout(buffer_reference, scalar) buffer _g_elements_in2
-{
-    uint64_t g_elements_in2[];
-};
+// layout(buffer_reference, scalar) buffer _g_elements_in2
+// {
+//     uint64_t g_elements_in2[];
+// };
 
-layout(buffer_reference, scalar) readonly buffer _histograms
-{
-    uint g_histograms[];
-};
+// layout(buffer_reference, scalar) readonly buffer _histograms
+// {
+//     uint g_histograms[];
+// };
 
-// #include "../allbuffer_reference.glsl"
+#include "../allbuffer_reference.glsl"
 #include "../push_contant.h"
+
+// layout(binding = eAddress, scalar) buffer _Address
+// {
+
+//     uint64_t element_in_address;
+//     uint64_t pinigpong_address;
+//     uint64_t histograms_address;
+// };
 
 layout(binding = eAddress, scalar) buffer _Address
 {
+    uint64_t xyz_address;
+    uint64_t scale_address;
+    uint64_t feature_address;
+    uint64_t opacity_address;
+    uint64_t rotation_address;
+    uint64_t depth_address;
+    uint64_t clamped_address;
+    uint64_t radii_address;
+    uint64_t mean2d_address;
+    uint64_t conv3d_address;
+    uint64_t conic_opacity_address;
+    uint64_t rgb_address;
+    uint64_t tiles_touched_address;
+    uint64_t point_offsets_address;
+    // BinningState
+    uint64_t point_list_keys_address;
+    uint64_t point_list_keys_pingpong_address;
+    uint64_t point_list_address;
+    uint64_t point_list_pingpong_address;
+    // ImageState
+    uint64_t ranges_address;
+    uint64_t n_contrib_address;
+    uint64_t accum_alpha_address;
 
-    uint64_t element_in_address;
-    uint64_t pinigpong_address;
     uint64_t histograms_address;
 };
 
-// layout(binding = eAddress, scalar) buffer _Address
-//{
-//     uint64_t xyz_address;
-//     uint64_t scale_address;
-//     uint64_t feature_address;
-//     uint64_t opacity_address;
-//     uint64_t rotation_address;
-//     uint64_t depth_address;
-//     uint64_t clamped_address;
-//     uint64_t radii_address;
-//     uint64_t mean2d_address;
-//     uint64_t conv3d_address;
-//     uint64_t conic_opacity_address;
-//     uint64_t rgb_address;
-//     uint64_t tiles_touched_address;
-//     uint64_t point_offsets_address;
-//// BinningState
-//    uint64_t point_list_keys_address;
-//    uint64_t point_list_keys_pingpong_address;
-//    uint64_t point_list_address;
-//    uint64_t point_list_pingpong_address;
-//// ImageState
-//    uint64_t ranges_address;
-//    uint64_t n_contrib_address;
-//    uint64_t accum_alpha_address;
-//
-//    uint64_t histograms_address;
-//};
-//
-// #define g_elements_in point_list_keys.point_list_keys
-// #define g_histograms histograms.histograms
+#define g_elements_in point_list_keys.point_list_keys
+#define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
+#define g_histograms histograms.histograms
 shared uint[RADIX_SORT_BINS] histogram;
 
 void main()
 {
-    //    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
-    //    _histograms histograms = _histograms(histograms_address);
-    _g_elements_in1 g_elements_in1 = _g_elements_in1(element_in_address);
-    _g_elements_in2 g_elements_in2 = _g_elements_in2(pinigpong_address);
+    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
+    _point_list_keys_pingpong point_list_keys_pingpong = _point_list_keys_pingpong(point_list_keys_pingpong_address);
     _histograms histograms = _histograms(histograms_address);
+    // _g_elements_in1 g_elements_in1 = _g_elements_in1(element_in_address);
+    // _g_elements_in2 g_elements_in2 = _g_elements_in2(pinigpong_address);
+    // _histograms histograms = _histograms(histograms_address);
     uint gID = gl_GlobalInvocationID.x;
     uint lID = gl_LocalInvocationID.x;
     uint wID = gl_WorkGroupID.x;
@@ -132,10 +134,10 @@ void main()
             uint bin = 0;
             if (pass % 2 == 0) {
                 // bin = uint(g_elements_in1[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
-                bin = uint(g_elements_in1.g_elements_in1[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
+                bin = uint(g_elements_in[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
 
             } else {
-                bin = uint(g_elements_in2.g_elements_in2[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
+                bin = uint(g_elements_out[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
             }
             // const uint bin = uint(g_elements_in[elementId] >> g_shift) & uint(RADIX_SORT_BINS - 1);
 
@@ -147,6 +149,6 @@ void main()
 
     if (lID < RADIX_SORT_BINS) {
         // g_histograms[RADIX_SORT_BINS * wID + lID] = histogram[lID];
-        histograms.g_histograms[RADIX_SORT_BINS * wID + lID] = histogram[lID];
+        g_histograms[RADIX_SORT_BINS * wID + lID] = histogram[lID];
     }
 }

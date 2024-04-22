@@ -59,26 +59,26 @@ layout(push_constant, std430) uniform PushConstants
 //     uint g_histograms[]; // |g_histograms| = RADIX_SORT_BINS * #WORKGROUPS = RADIX_SORT_BINS * g_num_workgroups
 // };
 
-layout(buffer_reference, scalar) buffer _g_elements_in1
-{
-    uint64_t g_elements_in1[];
-};
-layout(buffer_reference, scalar) buffer _g_elements_in2
-{
-    uint64_t g_elements_in2[];
-};
-layout(buffer_reference, scalar) readonly buffer _histograms
-{
-    uint g_histograms[];
-};
+// layout(buffer_reference, scalar) buffer _g_elements_in1
+// {
+//     uint64_t g_elements_in1[];
+// };
+// layout(buffer_reference, scalar) buffer _g_elements_in2
+// {
+//     uint64_t g_elements_in2[];
+// };
+// layout(buffer_reference, scalar) readonly buffer _histograms
+// {
+//     uint g_histograms[];
+// };
 #include "../push_contant.h"
-layout(binding = eAddress, scalar) buffer _Address
-{
+// layout(binding = eAddress, scalar) buffer _Address
+// {
 
-    uint64_t element_in_address;
-    uint64_t pinigpong_address;
-    uint64_t histograms_address;
-};
+//     uint64_t element_in_address;
+//     uint64_t pinigpong_address;
+//     uint64_t histograms_address;
+// };
 
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
 shared uint[RADIX_SORT_BINS] global_offsets; // global exclusive scan (prefix sum)
@@ -88,60 +88,60 @@ struct BinFlags {
 };
 shared BinFlags[RADIX_SORT_BINS] bin_flags;
 
-// #include "../allbuffer_reference.glsl"
+#include "../allbuffer_reference.glsl"
 
 // #define g_elements_in(pass, index) (pass % 2 == 0 ? g_elements_in1[index] : g_elements_in2[index])
 // #define g_elements_out(pass, index) (pass % 2 == 0 ? g_elements_out1[index] : g_elements_out2[index])
 // #define g_elements_in(pass,index) (g_elements_in1)
 
-// layout(binding = eAddress, scalar) buffer _Address
-//{
-//     uint64_t xyz_address;
-//     uint64_t scale_address;
-//     uint64_t feature_address;
-//     uint64_t opacity_address;
-//     uint64_t rotation_address;
-//     uint64_t depth_address;
-//     uint64_t clamped_address;
-//     uint64_t radii_address;
-//     uint64_t mean2d_address;
-//     uint64_t conv3d_address;
-//     uint64_t conic_opacity_address;
-//     uint64_t rgb_address;
-//     uint64_t tiles_touched_address;
-//     uint64_t point_offsets_address;
-//// BinningState
-//    uint64_t point_list_keys_address;
-//    uint64_t point_list_keys_pingpong_address;
-//    uint64_t point_list_address;
-//    uint64_t point_list_pingpong_address;
-//// ImageState
-//    uint64_t ranges_address;
-//    uint64_t n_contrib_address;
-//    uint64_t accum_alpha_address;
-//    uint64_t histograms_address;
-//};
+layout(binding = eAddress, scalar) buffer _Address
+{
+    uint64_t xyz_address;
+    uint64_t scale_address;
+    uint64_t feature_address;
+    uint64_t opacity_address;
+    uint64_t rotation_address;
+    uint64_t depth_address;
+    uint64_t clamped_address;
+    uint64_t radii_address;
+    uint64_t mean2d_address;
+    uint64_t conv3d_address;
+    uint64_t conic_opacity_address;
+    uint64_t rgb_address;
+    uint64_t tiles_touched_address;
+    uint64_t point_offsets_address;
+    // BinningState
+    uint64_t point_list_keys_address;
+    uint64_t point_list_keys_pingpong_address;
+    uint64_t point_list_address;
+    uint64_t point_list_pingpong_address;
+    // ImageState
+    uint64_t ranges_address;
+    uint64_t n_contrib_address;
+    uint64_t accum_alpha_address;
+    uint64_t histograms_address;
+};
+
+#define g_histograms histograms.histograms
 //
-// #define g_histograms histograms.histograms
-//
-// #define g_elements_in point_list_keys.point_list_keys
-// #define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
-// #define g_elements_value_in point_list.point_list
-// #define g_elements_value_out point_list_pingpong.point_list_pingpong
+#define g_elements_in point_list_keys.point_list_keys
+#define g_elements_out point_list_keys_pingpong.point_list_keys_pingpong
+#define g_elements_value_in point_list.point_list
+#define g_elements_value_out point_list_pingpong.point_list_pingpong
 
 // #define ELEMENT_IN(index, iteration) (iteration % 2 == 0 ? g_elements_in[index] : g_elements_out[index])
 
 // #define ELEMENT_VALUE_IN(index, iteration) (iteration % 2 == 0 ? g_elements_value_in[index] : g_elements_value_out[index])
 void main()
 {
-    //    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
-    //    _point_list_keys_pingpong point_list_keys_pingpong = _point_list_keys_pingpong(point_list_keys_pingpong_address);
+    _point_list_keys point_list_keys = _point_list_keys(point_list_keys_address);
+    _point_list_keys_pingpong point_list_keys_pingpong = _point_list_keys_pingpong(point_list_keys_pingpong_address);
+
+    _point_list point_list = _point_list(point_list_address);
+    _point_list_pingpong point_list_pingpong = _point_list_pingpong(point_list_pingpong_address);
     //
-    //    _point_list point_list = _point_list(point_list_address);
-    //    _point_list_pingpong point_list_pingpong = _point_list_pingpong(point_list_pingpong_address);
-    //
-    _g_elements_in1 g_elements_in1 = _g_elements_in1(element_in_address);
-    _g_elements_in2 g_elements_in2 = _g_elements_in2(pinigpong_address);
+    // _g_elements_in g_elements_in = _g_elements_in(element_in_address);
+    // _g_elements_in2 g_elements_in2 = _g_elements_in2(pinigpong_address);
 
     _histograms histograms = _histograms(histograms_address);
 
@@ -158,7 +158,7 @@ void main()
     if (lID < RADIX_SORT_BINS) {
         uint count = 0;
         for (uint j = 0; j < g_num_workgroups; j++) {
-            const uint t = histograms.g_histograms[RADIX_SORT_BINS * j + lID];
+            const uint t = histograms.histograms[RADIX_SORT_BINS * j + lID];
             local_histogram = (j == wID) ? count : local_histogram;
             count += t;
         }
@@ -194,14 +194,18 @@ void main()
         barrier();
 
         uint64_t element_in = 0;
+        uint64_t element_value_in = 0;
+
         uint binID = 0;
         uint binOffset = 0;
         if (elementId < g_num_elements) {
             // element_in = g_elements_in[elementId];
             if (pass % 2 == 0) {
-                element_in = g_elements_in1.g_elements_in1[elementId];
+                element_in = g_elements_in[elementId];
+                element_value_in = g_elements_value_in[elementId];
             } else {
-                element_in = g_elements_in2.g_elements_in2[elementId];
+                element_in = g_elements_out[elementId];
+                element_value_in = g_elements_value_out[elementId];
             }
 
             binID = uint(element_in >> g_shift) & uint(RADIX_SORT_BINS - 1);
@@ -230,14 +234,18 @@ void main()
 
                 // g_elements_out1[binOffset + prefix] = element_in;
                 // g_elements_in1.g_elements_in1[binOffset + prefix] = element_in;
-                g_elements_in2.g_elements_in2[binOffset + prefix] = element_in;
+                g_elements_out[binOffset + prefix] = element_in;
+                g_elements_value_out[binOffset + prefix] = element_value_in;
 
             } else {
-                 
-                g_elements_in1.g_elements_in1[binOffset + prefix] = element_in;
+
+                // if (binOffset + prefix == 0) {
+                //     debugPrintfEXT("message %lu \n", element_in);
+                // }
+                g_elements_in[binOffset + prefix] = element_in;
+                g_elements_value_in[binOffset + prefix] = element_value_in;
             }
 
-             
             if (prefix == count - 1) {
                 atomicAdd(global_offsets[binID], count);
             }
@@ -246,8 +254,7 @@ void main()
         //     debugPrintfEXT("message %u ", g_shift);
 
         barrier();
-        // if (gl_GlobalInvocationID.x == 0) {
-        //     debugPrintfEXT("message11234 %lu  \n", g_elements_out[13]);
-        // }
+        // if (gl_GlobalInvocationID.x == 0)
+        //     debugPrintfEXT("message %lu %lu %lu %lu %lu %lu\n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[13], g_elements_in[12], g_elements_in[172345]);
     }
 }

@@ -28,12 +28,12 @@ void duplicatePass::prepare_descriptorset()
     content->prepare_descriptorset([&]() {
         auto descriptor_manager = content->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(point_list_key,
-                                               0,
-                                               DescriptorManager::Compute);
-        descriptor_manager->Make_DescriptorSet(point_list_value,
-                                               1,
-                                               DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(point_list_key,
+        //                                        0,
+        //                                        DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(point_list_value,
+        //                                        1,
+        //                                        DescriptorManager::Compute);
 
         descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
                                                (int)Gaussian_Data_Index::eAddress,

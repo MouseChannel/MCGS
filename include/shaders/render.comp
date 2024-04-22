@@ -43,6 +43,8 @@ layout(binding = eAddress, scalar) buffer _Address
     uint64_t ranges_address;
     uint64_t n_contrib_address;
     uint64_t accum_alpha_address;
+
+    uint64_t histograms_address;
 };
 
 layout(set = 0, binding = render_out_index, rgba8) uniform writeonly image2D out_img;
@@ -176,7 +178,7 @@ void main()
         // for (int ch = 0; ch < CHANNELS; ch++)
         //     out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch];
         if (pix.x == 300 && pix.y == 485) {
-            // debugPrintfEXT("message outcolor: %f %f %f\n", C.x, C.y, C.z);
+            debugPrintfEXT("message outcolor: %f %f %f\n", C.x, C.y, C.z);
         }
         // 438 713
         //  if (C.z < 0.005f && C.z > 0.002f)

@@ -26,7 +26,6 @@ layout(push_constant, std430) uniform PushConstants
     uint g_num_elements;
 };
 
- 
 shared uint[RADIX_SORT_BINS] histogram;
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums; // subgroup reductions
 shared uint[RADIX_SORT_BINS] local_offsets; // local exclusive scan (prefix sum) (inside subgroups)
@@ -180,6 +179,11 @@ void main()
                     g_elements_out[binOffset + prefix] = element_in;
                     g_elements_value_out[binOffset + prefix] = element_value_in;
                 } else {
+
+                    // if (binOffset + prefix == 0) {
+                    //     debugPrintfEXT("message %lu \n", element_in);
+                    // }
+
                     g_elements_in[binOffset + prefix] = element_in;
                     // debugPrintfEXT("message  %d %lu\n", binOffset + prefix, element_in);
                     g_elements_value_in[binOffset + prefix] = element_value_in;
@@ -195,6 +199,6 @@ void main()
         }
     }
     barrier();
-   
-    // debugPrintfEXT("message %lu %lu %lu %lu %lu %lu\n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[13], g_elements_in[12], g_elements_in[172345]);
+    if (gl_GlobalInvocationID.x == 0)
+        debugPrintfEXT("message %lu %lu %lu %lu %lu %lu\n", g_elements_in[0], g_elements_in[1], g_elements_in[2], g_elements_in[13], g_elements_in[12], g_elements_in[172345]);
 }

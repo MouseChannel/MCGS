@@ -5,10 +5,11 @@ using namespace MCRT;
 class SortMultiPass : public GSPassBase {
 
 public:
-    SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
-                  std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
-                  std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
-                  std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data);
+    SortMultiPass() = default;
+    // SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
+    //               std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
+    //               std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
+    //               std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data);
 
     void run_pass(vk::CommandBuffer& cmd) override;
     PushContant_SortHisgram pc;
@@ -25,7 +26,7 @@ public:
     // std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value;
 
     // void record_command();
-    const uint num_element = 1000000;
+    // const uint num_element = 1000000;
     // const uint num_blocks_per_workgroup = 32;
     // const uint WORKGROUP_SIZE = 256;
 
@@ -33,7 +34,7 @@ public:
     // std::shared_ptr<ComputePass> high_radixsort;
 
     // std::shared_ptr<ComputePass> sort_content;
-    using temptype = uint64_t;
+    // using temptype = uint64_t;
     // std::vector<temptype> element_in;
     // std::vector<temptype> ping_pong;
     // std::shared_ptr<Buffer> element_in_buffer;
@@ -42,12 +43,12 @@ public:
     // std::vector<uint32_t> ping_pong_value;
     // std::vector<uint32_t> histograms;
 
-    std::shared_ptr<Uniform_Stuff<temptype>> element_in_data;
-    std::shared_ptr<Uniform_Stuff<temptype>> ping_pong_data;
+    // std::shared_ptr<Uniform_Stuff<temptype>> element_in_data;
+    // std::shared_ptr<Uniform_Stuff<temptype>> ping_pong_data;
 
     // std::shared_ptr<Uniform_Stuff<uint32_t>> element_value_in_data;
     // std::shared_ptr<Uniform_Stuff<uint32_t>> ping_pong_value_data;
-    std::shared_ptr<Uniform_Stuff<uint32_t>> histograms_data;
+    // std::shared_ptr<Uniform_Stuff<uint32_t>> histograms_data;
 
     // std::shared_ptr<CommandBuffer> cmd;
 
@@ -56,6 +57,6 @@ public:
 
     // std::shared_ptr<Buffer> zero_buffer;
     // std::shared_ptr<Buffer> histograms_buffer;
-    std::shared_ptr<Uniform_Stuff<TestAddr>> test_data;
+    // std::shared_ptr<Uniform_Stuff<TestAddr>> test_data;
     };
 }

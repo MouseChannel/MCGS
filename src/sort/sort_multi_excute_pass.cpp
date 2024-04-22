@@ -1,4 +1,4 @@
-#include "sort/sort_multi_pass.hpp"
+#include "sort/sort_multi_excute_pass.hpp"
 #include "Helper/CommandManager.hpp"
 #include "Wrapper/CommandBuffer.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
@@ -11,13 +11,13 @@
 
 namespace MCGS {
 
-SortMultiPass::SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data, std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data, std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data, std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
-{
-    element_in_data = _element_in_data;
-    histograms_data = _histograms_data;
-    ping_pong_data = _pingpong_data;
-    test_data = _test_data;
-}
+// SortMultiPass::SortMultiPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data, std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data, std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data, std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
+// {
+//     element_in_data = _element_in_data;
+//     histograms_data = _histograms_data;
+//     ping_pong_data = _pingpong_data;
+//     test_data = _test_data;
+// }
 
 void SortMultiPass::run_pass(vk::CommandBuffer& cmd)
 {
@@ -51,7 +51,7 @@ void SortMultiPass::run_pass(vk::CommandBuffer& cmd)
                                      .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
                                      .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                      .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-    cmd.dispatch(ceil((float)num_element / 256.f / 32.f), 1, 1);
+    cmd.dispatch(ceil((float)1625771 / 256.f / 32.f), 1, 1);
 }
 
 void SortMultiPass::prepare_buffer()
@@ -98,14 +98,9 @@ void SortMultiPass::prepare_descriptorset()
         //                                        4,
         //                                        DescriptorManager::Compute);
 
-
-        descriptor_manager->Make_DescriptorSet(test_data,22,DescriptorManager::Compute);
-
-
-
-
-
-
-        });
+        descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
+                                               22,
+                                               DescriptorManager::Compute);
+    });
 }
 }

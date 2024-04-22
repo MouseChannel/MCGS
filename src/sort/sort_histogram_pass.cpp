@@ -8,16 +8,16 @@
 #include <chrono>
 #include <random>
 namespace MCGS {
-SortHistogramPass::SortHistogramPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
-                                     std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
-                                     std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
-                                     std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
-    : element_in_data(_element_in_data)
-    , ping_pong_data(_pingpong_data)
-    , histograms_data(_histograms_data)
-    , test_data(_test_data)
-{
-}
+// SortHistogramPass::SortHistogramPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _element_in_data,
+//                                      std::shared_ptr<Uniform_Stuff<uint64_t>> _pingpong_data,
+//                                      std::shared_ptr<Uniform_Stuff<uint32_t>> _histograms_data,
+//                                      std::shared_ptr<Uniform_Stuff<TestAddr>> _test_data)
+//     : element_in_data(_element_in_data)
+//     , ping_pong_data(_pingpong_data)
+//     , histograms_data(_histograms_data)
+//     , test_data(_test_data)
+// {
+// }
 
 void SortHistogramPass::run_pass(vk::CommandBuffer& cmd)
 {
@@ -45,7 +45,7 @@ void SortHistogramPass::run_pass(vk::CommandBuffer& cmd)
                                      .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
                                      .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                      .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-    cmd.dispatch(ceil((float)num_element / 256.f / 32.f), 1, 1);
+    cmd.dispatch(ceil((float)1625771 / 256.f / 32.f), 1, 1);
 }
 
 void SortHistogramPass::prepare_buffer()
@@ -112,7 +112,7 @@ void SortHistogramPass::prepare_descriptorset()
         //                                        22,
         //                                        DescriptorManager::Compute);
 
-        descriptor_manager->Make_DescriptorSet(test_data,
+        descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
                                                22,
                                                DescriptorManager::Compute);
 

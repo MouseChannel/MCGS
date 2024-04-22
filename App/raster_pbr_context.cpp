@@ -38,7 +38,7 @@
 #include "sum_pass.hpp"
 
 #include "Helper/CommandManager.hpp"
-#include "sort/sort_manager.hpp"
+#include "sort/multi_sort_pass.hpp"
 #include <Helper/Model_Loader/ImageWriter.hpp>
 #include <duplicateWithKeys_pass.hpp>
 #include <execution>
@@ -103,14 +103,17 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     m_vertex_buffer = Buffer::CreateDeviceBuffer(vertex.data(), vertex.size() * sizeof(vertex[0]), vk::BufferUsageFlagBits::eVertexBuffer);
 
     //
-    std::shared_ptr<MCGS::SortManager> sortmanager;
-    sortmanager.reset(new MCGS::SortManager);
-    sortmanager->Init();
+    // std::shared_ptr<MCGS::SortManager> sortmanager;
+    // sortmanager.reset(new MCGS::SortManager);
+    // sortmanager->Init();
 
 
-    vk::CommandBuffer temp11 { VK_NULL_HANDLE };
-    sortmanager->run_pass(temp11);
+    // vk::CommandBuffer temp11 { VK_NULL_HANDLE };
+    // sortmanager->run_pass(temp11);
+    MCGS::GaussianManager::Get_Singleton()->Init();
+    
     // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Compute_queue(), [&](vk::CommandBuffer& cmd) {
+
     // });
 
     //
@@ -158,27 +161,6 @@ void raster_context_pbr::prepare(std::shared_ptr<Window> window)
     // });
 
   
-
-    std::vector<uint64_t> temp(1000000);
-    std::shared_ptr<Buffer> tempbuffer;
-    tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    Buffer::CopyBuffer(sortmanager->element_in_buffer, tempbuffer);
-    auto temp1 = tempbuffer->Get_mapped_data(0);
-    std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
-    for (auto u : temp) {
-        if (u == 105922436u) {
-            int asswd = 3;
-        }
-    }
-    int r = 0;
-    std::sort(sortmanager->element_in.begin(), sortmanager->element_in.end());
-    auto& te = sortmanager->element_in;
-    for (int i = 0; i < te.size(); i++) {
-        if (te[i] != temp[i]) {
-            std::cout << "failed" << std::endl;
-            break;
-        }
-    }
 
     /////
 

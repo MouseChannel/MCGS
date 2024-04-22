@@ -2,7 +2,9 @@
 // #include "Rendering/ComputePass.hpp"
 // #include "Wrapper/Image.hpp"
 #include "Helper/CommandManager.hpp"
+#include "Helper/Model_Loader/ImageWriter.hpp"
 #include "Wrapper/Buffer.hpp"
+#include "Wrapper/Device.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
 #include "chrono"
@@ -14,8 +16,6 @@
 #include "shaders/push_contant.h"
 #include "sort_pass.hpp"
 #include "sum_pass.hpp"
-#include "Wrapper/Device.hpp"
-#include "Helper/Model_Loader/ImageWriter.hpp"
 
 #include <Wrapper/CommandBuffer.hpp>
 
@@ -25,51 +25,64 @@ namespace MCGS {
 void GaussianManager::Init()
 {
     get_gaussian_raw_data();
-    // render_out.reset(new Image(800,
-    //                            800,
-    //                            // vk::Format::eR32G32B32A32Sfloat,
-    //                            vk::Format::eR8G8B8A8Unorm,
-    //                            vk::ImageType::e2D,
-    //                            vk::ImageTiling::eOptimal,
-    //                            vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
-    //                            vk::ImageAspectFlagBits::eColor,
-    //                            vk::SampleCountFlagBits::e1));
-    // render_out->SetImageLayout(vk::ImageLayout::eGeneral,
-    //                            vk::AccessFlagBits::eNone,
-    //                            vk::AccessFlagBits::eNone,
-    //                            vk::PipelineStageFlagBits::eTopOfPipe,
-    //                            vk::PipelineStageFlagBits::eBottomOfPipe);
 
     precess_context.reset(new ProcessPass);
     // precess_context->set_address(address);
     precess_context->Init();
 
-    // std::vector<uint64_t> data1(16257710);
-
-    point_list_keyd.resize(1625771, 12);
-    point_list_valued.resize(1625771);
-    point_list_key = UniformManager::make_uniform(point_list_keyd,
-                                                  vk::ShaderStageFlagBits::eCompute,
-                                                  vk::DescriptorType::eStorageBuffer,
-                                                  vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc);
-    point_list_value = UniformManager::make_uniform(point_list_valued,
-                                                    vk::ShaderStageFlagBits::eCompute,
-                                                    vk::DescriptorType::eStorageBuffer,
-                                                    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc);
+   
 
     sum_context.reset(new SumPass);
     // sum_context.set_address();
     sum_context->Init();
-    duplicate_context.reset(new duplicatePass(point_list_key, point_list_value));
+    // duplicate_context.reset(new duplicatePass(point_list_key, point_list_value));
+    duplicate_context.reset(new duplicatePass);
+
     duplicate_context->Init();
 
-    sort_context.reset(new SortPass(point_list_key, point_list_value));
-    sort_context->Init();
+    // sort_context.reset(new SortPass(point_list_key, point_list_value));
+    // sort_context->Init();
+    multi_sort_context.reset(new Multi_SortPass);
+    multi_sort_context->Init();
+
     identify_content.reset(new IdentifyPass);
     identify_content->Init();
     render_content.reset(new RasterPass);
     render_content->Init();
 
+    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+    Tick();
+    Context::Get_Singleton()->get_device()->get_handle().waitIdle();
+
+    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
+
+    std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
+    //
+
+    // here
+    ImageWriter::WriteImage(render_content->render_out);
+    std::vector<uint64_t> temp(1625771);
+    std::shared_ptr<Buffer> tempbuffer;
+    tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+    Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
+    auto temp1 = tempbuffer->Get_mapped_data(0);
+    std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
+    for (auto u : temp) {
+        if (u == 105922436u) {
+            int asswd = 3;
+        }
+    }
+    int r = 0;
+    std::sort(binning_state.point_list_key_d.begin(), binning_state.point_list_key_d.end());
+    auto& te = binning_state.point_list_key_d;
+    for (int i = 0; i < te.size(); i++) {
+        if (te[i] != temp[i]) {
+            std::cout << "failed" << std::endl;
+            break;
+        }
+    }
+    int r12 = 0;
     // std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     //
     //
@@ -78,9 +91,7 @@ void GaussianManager::Init()
     //
     // std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
     //
-
 }
-
 
 void GaussianManager::Tick()
 {
@@ -89,10 +100,11 @@ void GaussianManager::Tick()
     precess_context->run_pass(cmd->get_handle());
     sum_context->run_pass(cmd->get_handle());
     duplicate_context->run_pass(cmd->get_handle());
-    sort_context->run_pass(cmd->get_handle());
+    // sort_context->run_pass(cmd->get_handle());
+    multi_sort_context->run_pass(cmd->get_handle());
     identify_content->run_pass(cmd->get_handle());
     render_content->run_pass(cmd->get_handle());
-    // precess_context->get_context()->EndFrame();
+
     context->Submit();
 }
 
@@ -108,16 +120,7 @@ GaussianManager::GeometryState::GeometryState(int size)
     tiles_touched_d.resize(size);
     point_offsets_d.resize(size);
 
-    // depth = UniformManager::make_uniform(depth_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-
-    // clamped = UniformManager::make_uniform(clamped_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // radii = UniformManager::make_uniform(radii_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // mean2d = UniformManager::make_uniform(mean2d_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // conv3d = UniformManager::make_uniform(cov3d_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // conic_opacity = UniformManager::make_uniform(conic_opacity_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // rgb = UniformManager::make_uniform(rgb_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // tiles_touched = UniformManager::make_uniform(tiles_touched_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
-    // point_offsets = UniformManager::make_uniform(point_offsets_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
+  
     auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR;
     depth_buffer = Buffer::CreateDeviceBuffer(depth_d.data(),
                                               depth_d.size() * sizeof(depth_d[0]),
@@ -199,7 +202,7 @@ void GaussianManager::get_gaussian_raw_data()
         // glm::make_vec3({ xyz_d[i * 3], xyz_d[i * 3 + 1], xyz_d[i * 3 + 2] });
     }
 
-    std::vector<glm::vec3> xyz_3{
+    std::vector<glm::vec3> xyz_3 {
         xyz_d.begin(),
         xyz_d.end() - 3
     };
@@ -221,12 +224,7 @@ void GaussianManager::get_gaussian_raw_data()
         }
     }
     point_num = opacity_d.size();
-
-    // xyz = UniformManager::make_uniform(xyz_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
-    // scale = UniformManager::make_uniform(scale_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
-    // feature = UniformManager::make_uniform(feature_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
-    // opacity = UniformManager::make_uniform(opacity_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
-    // rotation = UniformManager::make_uniform(rotations_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eUniformBuffer);
+ 
     auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR;
     xyz_buffer = Buffer::CreateDeviceBuffer(xyz_d.data(),
                                             xyz_d.size() * sizeof(xyz_d[0]),
@@ -249,7 +247,7 @@ void GaussianManager::get_gaussian_raw_data()
 
     binning_state = BinningState(1625771);
     image_state = ImageState(800 * 800);
-    auto addr = GS_Address{
+    auto addr = GS_Address {
         .xyz_address = xyz_buffer->get_address(),
         .scale_address = scale_buffer->get_address(),
         .feature_address = feature_buffer->get_address(),
@@ -271,7 +269,8 @@ void GaussianManager::get_gaussian_raw_data()
         // Image
         .ranges_address = image_state.ranges_buffer->get_address(),
         .n_contrib_address = image_state.n_contrib_buffer->get_address(),
-        .accum_alpha_address = image_state.accum_alpha_buffer->get_address()
+        .accum_alpha_address = image_state.accum_alpha_buffer->get_address(),
+        .histograms_address = binning_state.histograms_buffer->get_address()
     };
     address = UniformManager::make_uniform({ addr }, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
 }

@@ -2,6 +2,7 @@
 #include "Rendering/ComputePass.hpp"
 #include "Wrapper/Image.hpp"
 #include "shaders/push_contant.h"
+#include "sort/multi_sort_pass.hpp"
 #include <Helper/Instance_base.hpp>
 namespace MCGS {
 using namespace MCRT;
@@ -25,13 +26,14 @@ public:
         return point_num;
     }
 
-
-
     std::shared_ptr<ProcessPass> precess_context;
     std::shared_ptr<SumPass> sum_context;
 
     std::shared_ptr<duplicatePass> duplicate_context;
     std::shared_ptr<SortPass> sort_context;
+    std::shared_ptr<Multi_SortPass> multi_sort_context;
+    ;
+
     std::shared_ptr<IdentifyPass> identify_content;
     std::shared_ptr<RasterPass> render_content;
 
@@ -88,13 +90,12 @@ private:
         std::vector<uint64_t> point_list_pingpong_d;
         std::vector<uint32_t> histograms_d;
 
-
         std::shared_ptr<Buffer> point_list_key_buffer;
         std::shared_ptr<Buffer> point_list_buffer;
 
         std::shared_ptr<Buffer> point_list_key_pingpong_buffer;
         std::shared_ptr<Buffer> point_list_pingpong_buffer;
-        std::shared_ptr<Buffer>histograms_buffer;
+        std::shared_ptr<Buffer> histograms_buffer;
 
     } binning_state;
     struct ImageState {
@@ -112,16 +113,15 @@ private:
     } image_state;
 
     // GeometryState geometry_state;
-   
 
-    std::vector<uint64_t> point_list_keyd;
+    // std::vector<uint64_t> point_list_keyd;
 
-    std::vector<uint64_t> point_list_valued;
+    // std::vector<uint64_t> point_list_valued;
 
-    std::shared_ptr<Uniform_Stuff<uint64_t>>
-        point_list_key;
+    // std::shared_ptr<Uniform_Stuff<uint64_t>>
+    //     point_list_key;
 
-    std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value;
+    // std::shared_ptr<Uniform_Stuff<uint64_t>> point_list_value;
     // conv3d = UniformManager::make_uniform(cov3d_d, vk::ShaderStageFlagBits::eCompute, vk::DescriptorType::eStorageBuffer);
 };
 }

@@ -10,12 +10,12 @@ namespace MCGS {
 void RasterPass::run_pass(vk::CommandBuffer& cmd)
 {
     cmd.pushConstants<uint32_t>(
-                                      content
-                                          ->get_pipeline()
-                                          ->get_layout(),
-                                      vk::ShaderStageFlagBits::eCompute,
-                                      0,
-                                      1);
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        1);
 
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                            content->get_pipeline()->get_layout(),
@@ -36,8 +36,6 @@ void RasterPass::run_pass(vk::CommandBuffer& cmd)
     // ImageWriter::WriteImage(render_out);
     // std::cout<<"tick"<<std::endl;
 }
-
-
 
 void RasterPass::prepare_buffer()
 {
