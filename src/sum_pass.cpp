@@ -18,19 +18,19 @@ void SumPass::prepare_buffer()
 
     element_in.resize(num_element, 1);
 
-    element_in_data = UniformManager::make_uniform(element_in,
-                                                   vk::ShaderStageFlagBits::eCompute,
-                                                   vk::DescriptorType::eStorageBuffer,
-                                                   vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+    // element_in_data = UniformManager::make_uniform(element_in,
+    //                                                vk::ShaderStageFlagBits::eCompute,
+    //                                                vk::DescriptorType::eStorageBuffer,
+    //                                                vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 }
 void SumPass::prepare_descriptorset()
 {
     content->prepare_descriptorset([&]() {
         auto descriptor_manager = content->get_descriptor_manager();
 
-        descriptor_manager->Make_DescriptorSet(element_in_data,
-                                               0,
-                                               DescriptorManager::Compute);
+        // descriptor_manager->Make_DescriptorSet(element_in_data,
+        //                                        0,
+        //                                        DescriptorManager::Compute);
 
         descriptor_manager->Make_DescriptorSet(GaussianManager::Get_Singleton()->get_buffer_addr(),
                                                (int)Gaussian_Data_Index::eAddress,
@@ -263,83 +263,83 @@ void SumPass::run_pass(vk::CommandBuffer& cmd)
         // .g_num_elements = num_element
 
     };
-      cmd.pushConstants<PushContant_Sum>(
-                                       content
-                                           ->get_pipeline()
-                                           ->get_layout(),
-                                       vk::ShaderStageFlagBits::eCompute,
-                                       0,
-                                       pc);
+    cmd.pushConstants<PushContant_Sum>(
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        pc);
 
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          content->get_pipeline()->get_layout(),
-                                                          0,
-                                                          content->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    content->get_pipeline()->get_handle());
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                           content->get_pipeline()->get_layout(),
+                           0,
+                           content->get_pipeline()->get_descriptor_sets(),
+                           {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                     content->get_pipeline()->get_handle());
 
-                                   cmd.pipelineBarrier2(vk::DependencyInfo()
-                                                            .setMemoryBarriers(
-                                                                vk::MemoryBarrier2()
-                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
+    cmd.pipelineBarrier2(vk::DependencyInfo()
+                             .setMemoryBarriers(
+                                 vk::MemoryBarrier2()
+                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-                                   cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
-                                   // second
-                                   pc.step = 1024;
-                                   cmd.pushConstants<PushContant_Sum>(
-                                       content
-                                           ->get_pipeline()
-                                           ->get_layout(),
-                                       vk::ShaderStageFlagBits::eCompute,
-                                       0,
-                                       pc);
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          content->get_pipeline()->get_layout(),
-                                                          0,
-                                                          content->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    content->get_pipeline()->get_handle());
+    cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
+    // second
+    pc.step = 1024;
+    cmd.pushConstants<PushContant_Sum>(
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        pc);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                           content->get_pipeline()->get_layout(),
+                           0,
+                           content->get_pipeline()->get_descriptor_sets(),
+                           {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                     content->get_pipeline()->get_handle());
 
-                                   cmd.pipelineBarrier2(vk::DependencyInfo()
-                                                            .setMemoryBarriers(
-                                                                vk::MemoryBarrier2()
-                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
+    cmd.pipelineBarrier2(vk::DependencyInfo()
+                             .setMemoryBarriers(
+                                 vk::MemoryBarrier2()
+                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-                                   cmd.dispatch(1, 1, 1);
-                                   // last
-                                   pc.step = -1;
-                                   cmd.pushConstants<PushContant_Sum>(
-                                       content
-                                           ->get_pipeline()
-                                           ->get_layout(),
-                                       vk::ShaderStageFlagBits::eCompute,
-                                       0,
-                                       pc);
-                                   cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                                                          content->get_pipeline()->get_layout(),
-                                                          0,
-                                                          content->get_pipeline()->get_descriptor_sets(),
-                                                          {});
-                                   cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                                                    content->get_pipeline()->get_handle());
+    cmd.dispatch(1, 1, 1);
+    // last
+    pc.step = -1;
+    cmd.pushConstants<PushContant_Sum>(
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        pc);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+                           content->get_pipeline()->get_layout(),
+                           0,
+                           content->get_pipeline()->get_descriptor_sets(),
+                           {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+                     content->get_pipeline()->get_handle());
 
-                                   cmd.pipelineBarrier2(vk::DependencyInfo()
-                                                            .setMemoryBarriers(
-                                                                vk::MemoryBarrier2()
-                                                                    .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
-                                                                    .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
-                                                                    .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
+    cmd.pipelineBarrier2(vk::DependencyInfo()
+                             .setMemoryBarriers(
+                                 vk::MemoryBarrier2()
+                                     .setSrcStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
+                                     .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
+                                     .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
-                                   cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
+    cmd.dispatch(ceil(GaussianManager::Get_Singleton()->get_point_num() / 1024.f), 1, 1);
 }
- 
+
 }

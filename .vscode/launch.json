@@ -21,7 +21,8 @@
             "name": "origin",
             "program": "${workspaceFolder}/build/ORIGIN_TEST",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            // "xdebugSettings":{}
         },
         {
             "name": "CMake: CMake Script",

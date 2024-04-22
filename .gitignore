@@ -1,5 +1,8 @@
+.vscode
 .cache
 .idea
+.fleet
 cmake-build-*
 build
 *.spv
+act
