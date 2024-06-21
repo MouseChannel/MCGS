@@ -57,7 +57,7 @@ void RasterPass::prepare_buffer()
 
 void RasterPass::prepare_shader_pc()
 {
-    shader_module.reset(new ShaderModule("/home/mocheng/project/MCGS/include/shaders/render.comp.spv"));
+    shader_module.reset(new ShaderModule("include/shaders/render.comp.spv"));
     pc_size = sizeof(uint32_t);
 }
 void RasterPass::prepare_descriptorset()

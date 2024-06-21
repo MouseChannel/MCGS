@@ -70,7 +70,7 @@ void SortMultiPass::prepare_buffer()
 void SortMultiPass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort.comp.spv"));
+        new ShaderModule("include/shaders/sort/multi_radixsort.comp.spv"));
     pc_size = sizeof(PushContant_SortHisgram);
 }
 

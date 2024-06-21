@@ -20,9 +20,9 @@ SortPass::SortPass(std::shared_ptr<Uniform_Stuff<uint64_t>> _point_list_key, std
 void SortPass::prepare_shader_pc()
 {
     // shader_module.reset(
-    //     new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/temp.comp.spv"));
+    //     new ShaderModule("include/shaders/sort/temp.comp.spv"));
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/sort.comp.spv"));
+        new ShaderModule("include/shaders/sort/sort.comp.spv"));
     pc_size = sizeof(PushContant_Sort);
 }
 void SortPass::prepare_descriptorset()

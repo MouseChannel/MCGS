@@ -16,7 +16,7 @@ void IdentifyPass::prepare_descriptorset()
 }
 void IdentifyPass::prepare_shader_pc()
 {
-    shader_module.reset(new ShaderModule("/home/mocheng/project/MCGS/include/shaders/identify.comp.spv"));
+    shader_module.reset(new ShaderModule("include/shaders/identify.comp.spv"));
     pc_size = sizeof(uint32_t);
 }
 

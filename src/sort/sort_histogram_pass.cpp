@@ -88,7 +88,7 @@ void SortHistogramPass::prepare_buffer()
 void SortHistogramPass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/sort/multi_radixsort_histograms.comp.spv"));
+        new ShaderModule("include/shaders/sort/multi_radixsort_histograms.comp.spv"));
     pc_size = sizeof(PushContant_SortHisgram);
 }
 

@@ -8,7 +8,7 @@ namespace MCGS {
 void ProcessPass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/process.comp.spv"));
+        new ShaderModule("include/shaders/process.comp.spv"));
     pc_size = sizeof(PushContant_GS);
 }
 void ProcessPass::prepare_buffer()

@@ -52,37 +52,37 @@ void GaussianManager::Init()
 
     std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     Tick();
-    Context::Get_Singleton()->get_device()->get_handle().waitIdle();
+    // Context::Get_Singleton()->get_device()->get_handle().waitIdle();
 
-    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
-    auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
+    // std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    // auto cpuSortTime = (static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count()) * std::pow(10, -3));
 
-    std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
-    //
+    // std::cout << "compute shader " << cpuSortTime << "[ms]." << std::endl;
+    // //
 
-    // here
-    ImageWriter::WriteImage(render_content->render_out);
-    std::vector<uint64_t> temp(1625771);
-    std::shared_ptr<Buffer> tempbuffer;
-    tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
-    Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
-    auto temp1 = tempbuffer->Get_mapped_data(0);
-    std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
-    for (auto u : temp) {
-        if (u == 105922436u) {
-            int asswd = 3;
-        }
-    }
-    int r = 0;
-    std::sort(binning_state.point_list_key_d.begin(), binning_state.point_list_key_d.end());
-    auto& te = binning_state.point_list_key_d;
-    for (int i = 0; i < te.size(); i++) {
-        if (te[i] != temp[i]) {
-            std::cout << "failed" << std::endl;
-            break;
-        }
-    }
-    int r12 = 0;
+    // // here
+    // ImageWriter::WriteImage(render_content->render_out);
+    // std::vector<uint64_t> temp(1625771);
+    // std::shared_ptr<Buffer> tempbuffer;
+    // tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
+    // Buffer::CopyBuffer(binning_state.point_list_key_buffer, tempbuffer);
+    // auto temp1 = tempbuffer->Get_mapped_data(0);
+    // std::memcpy(temp.data(), temp1.data(), temp.size() * sizeof(temp[0]));
+    // for (auto u : temp) {
+    //     if (u == 105922436u) {
+    //         int asswd = 3;
+    //     }
+    // }
+    // int r = 0;
+    // std::sort(binning_state.point_list_key_d.begin(), binning_state.point_list_key_d.end());
+    // auto& te = binning_state.point_list_key_d;
+    // for (int i = 0; i < te.size(); i++) {
+    //     if (te[i] != temp[i]) {
+    //         std::cout << "failed" << std::endl;
+    //         break;
+    //     }
+    // }
+    // int r12 = 0;
     // std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     //
     //
@@ -195,7 +195,7 @@ GaussianManager::ImageState::ImageState(int size)
 
 void GaussianManager::get_gaussian_raw_data()
 {
-    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/point_cloud.ply");
+    auto gs_data = MCGS::load_ply("point_cloud.ply");
     auto xyz_d = MCGS::get_xyz(gs_data);
     for (int i = 0; i < xyz_d.size() / 3; i++) {
 

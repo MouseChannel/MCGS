@@ -54,7 +54,7 @@ target_include_directories(src PUBLIC ${PROJECT_SOURCE_DIR}/include)
 file(GLOB_RECURSE MCRT_SRC ${PROJECT_SOURCE_DIR}/MCRT/src/*.cpp )
 add_library(mcrt_src ${MCRT_SRC})
 # std::foreach using tbb
-find_package(TBB REQUIRED COMPONENTS tbb)
+# find_package(TBB REQUIRED COMPONENTS tbb)
 set (MCRT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/MCRT ${PROJECT_SOURCE_DIR}/MCRT/example/base ${PROJECT_SOURCE_DIR}/MCRT/include ${PROJECT_SOURCE_DIR}/MCRT/include/Tool)
 target_include_directories(mcrt_src PUBLIC ${MCRT_INCLUDE_DIRS})
 
@@ -74,8 +74,8 @@ include(MCRT/cmake/FindIMGUI.cmake)
    target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
    target_include_directories(imgui PUBLIC ${MCRT_INCLUDE_DIRS})
 
-   find_package(TBB REQUIRED COMPONENTS tbb)
-   target_link_libraries(mcrt_src PUBLIC imgui tbb)
+   # find_package(TBB REQUIRED COMPONENTS tbb)
+   target_link_libraries(mcrt_src PUBLIC imgui )
 
 
    add_subdirectory(${PROJECT_SOURCE_DIR}/App)

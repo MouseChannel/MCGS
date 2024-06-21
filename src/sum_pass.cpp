@@ -10,7 +10,7 @@ namespace MCGS {
 void SumPass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/inclusiveSum.comp.spv"));
+        new ShaderModule("include/shaders/inclusiveSum.comp.spv"));
     pc_size = sizeof(PushContant_Sum);
 }
 void SumPass::prepare_buffer()

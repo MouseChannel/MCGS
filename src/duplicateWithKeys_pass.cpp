@@ -19,7 +19,7 @@ void duplicatePass::prepare_buffer()
 void duplicatePass::prepare_shader_pc()
 {
     shader_module.reset(
-        new ShaderModule("/home/mocheng/project/MCGS/include/shaders/duplicate.comp.spv"));
+        new ShaderModule("include/shaders/duplicate.comp.spv"));
     pc_size = sizeof(PushContant_Dup);
 }
 

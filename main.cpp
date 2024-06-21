@@ -108,7 +108,7 @@ RasterizeGaussiansCUDA(
 int main()
 {
 
-    auto gs_data = MCGS::load_ply("/home/mocheng/project/MCGS/point_cloud.ply");
+    auto gs_data = MCGS::load_ply("point_cloud.ply");
 
     auto background = torch::tensor({ 0., 0., 0. });
 
@@ -233,7 +233,7 @@ int main()
     for (int i = 0; i < data.size(); i++) {
     }
 
-    auto suc = stbi_write_jpg("/home/mocheng/project/MCGS/main1.jpg", 800, 800, 3, data.data(), 800 * 3);
+    auto suc = stbi_write_jpg("main1.jpg", 800, 800, 3, data.data(), 800 * 3);
     std::cout << suc << std::endl;
 
     return 0;
