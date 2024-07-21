@@ -17,6 +17,7 @@
 #include "sort_pass.hpp"
 #include "sum_pass.hpp"
 
+#include "Helper/cameraManager.hpp"
 #include <Wrapper/CommandBuffer.hpp>
 
 namespace MCGS {
@@ -25,12 +26,11 @@ namespace MCGS {
 void GaussianManager::Init()
 {
     get_gaussian_raw_data();
-
+    camera.reset(new CameraManager);
+    camera->Init();
     precess_context.reset(new ProcessPass);
     // precess_context->set_address(address);
     precess_context->Init();
-
-   
 
     sum_context.reset(new SumPass);
     // sum_context.set_address();
@@ -50,6 +50,7 @@ void GaussianManager::Init()
     render_content.reset(new RasterPass);
     render_content->Init();
 
+   
     std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
     Tick();
     // Context::Get_Singleton()->get_device()->get_handle().waitIdle();
@@ -61,7 +62,7 @@ void GaussianManager::Init()
     // //
 
     // // here
-    // ImageWriter::WriteImage(render_content->render_out);
+    ImageWriter::WriteImage(render_content->render_out);
     // std::vector<uint64_t> temp(1625771);
     // std::shared_ptr<Buffer> tempbuffer;
     // tempbuffer.reset(new Buffer(temp.size() * sizeof(temp[0]), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eHostVisible));
@@ -100,11 +101,10 @@ void GaussianManager::Tick()
     precess_context->run_pass(cmd->get_handle());
     sum_context->run_pass(cmd->get_handle());
     duplicate_context->run_pass(cmd->get_handle());
-    // sort_context->run_pass(cmd->get_handle());
     multi_sort_context->run_pass(cmd->get_handle());
     identify_content->run_pass(cmd->get_handle());
     render_content->run_pass(cmd->get_handle());
-
+    camera->Tick();
     context->Submit();
 }
 
@@ -120,7 +120,6 @@ GaussianManager::GeometryState::GeometryState(int size)
     tiles_touched_d.resize(size);
     point_offsets_d.resize(size);
 
-  
     auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR;
     depth_buffer = Buffer::CreateDeviceBuffer(depth_d.data(),
                                               depth_d.size() * sizeof(depth_d[0]),
@@ -224,7 +223,7 @@ void GaussianManager::get_gaussian_raw_data()
         }
     }
     point_num = opacity_d.size();
- 
+
     auto flag = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddressKHR;
     xyz_buffer = Buffer::CreateDeviceBuffer(xyz_d.data(),
                                             xyz_d.size() * sizeof(xyz_d[0]),

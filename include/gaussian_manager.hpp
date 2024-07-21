@@ -13,6 +13,7 @@ class duplicatePass;
 class SortPass;
 class IdentifyPass;
 class RasterPass;
+class CameraManager;
 class GaussianManager : public Instance_base<GaussianManager> {
 public:
     void Init();
@@ -25,9 +26,14 @@ public:
     {
         return point_num;
     }
+    auto get_camera(){
+        return  camera;
+    }
 
     std::shared_ptr<ProcessPass> precess_context;
-    std::shared_ptr<SumPass> sum_context;
+    std::shared_ptr<CameraManager> camera;
+    std::shared_ptr<SumPass>
+        sum_context;
 
     std::shared_ptr<duplicatePass> duplicate_context;
     std::shared_ptr<SortPass> sort_context;

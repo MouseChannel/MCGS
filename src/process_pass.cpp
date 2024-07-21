@@ -1,4 +1,5 @@
 #include "Helper/CommandManager.hpp"
+#include "Helper/cameraManager.hpp"
 #include "Wrapper/Pipeline/Compute_Pipeline.hpp"
 #include "Wrapper/Shader_module.hpp"
 #include "gaussian_manager.hpp"
@@ -47,19 +48,26 @@ void ProcessPass::prepare_descriptorset()
 
 void ProcessPass::run_pass(vk::CommandBuffer& cmd)
 {
+
+    auto camera = GaussianManager::Get_Singleton()->get_camera();
+    camera->Get_p_matrix();
+
     PushContant_GS pc {
         .viewMatrix = { -.993989f,
                         .1083f,
                         -.021122f,
                         0.f,
+
                         .11034f,
                         .97551f,
                         -.19026f,
                         0.f,
+
                         0.f,
                         -.19143f,
                         -.98151f,
                         0.f,
+
                         0.f,
                         0.f,
                         4.0311f,
@@ -86,14 +94,26 @@ void ProcessPass::run_pass(vk::CommandBuffer& cmd)
         .tanfov = 0.36f,
         .point_num = static_cast<int>(GaussianManager::Get_Singleton()->get_point_num())
     };
-    cmd
-                                      .pushConstants<PushContant_GS>(
-                                          content
-                                              ->get_pipeline()
-                                              ->get_layout(),
-                                          vk::ShaderStageFlagBits::eCompute,
-                                          0,
-                                          pc);
+
+    auto fov = 60.f / 180.0f * float(M_PI);
+    auto tfov = tan(fov * 0.5f);
+    pc = PushContant_GS {
+        .viewMatrix = camera->Get_v_matrix(),
+        .projMatrix = camera->Get_p_matrix() *camera->Get_v_matrix(),
+        .campos = camera->get_pos(),
+        .tanfov = float(tfov),
+//        .tanfov = 0.36f,
+
+        .point_num = static_cast<int>(GaussianManager::Get_Singleton()->get_point_num())
+    };
+
+    cmd.pushConstants<PushContant_GS>(
+        content
+            ->get_pipeline()
+            ->get_layout(),
+        vk::ShaderStageFlagBits::eCompute,
+        0,
+        pc);
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                            content->get_pipeline()->get_layout(),
                            0,
@@ -105,5 +125,4 @@ void ProcessPass::run_pass(vk::CommandBuffer& cmd)
     cmd.dispatch(ceil(float(GaussianManager::Get_Singleton()->get_point_num()) / 256), 1, 1);
 }
 
- 
 }
