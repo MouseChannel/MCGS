@@ -13,28 +13,31 @@ using vec3 = glm::vec3;
 #define END_ENUM()
 #endif
 
-BEGIN_ENUM(Gaussian_Data_Index)
-    xyz_index = 0,
-    scale_index = 1,
-    feature_index = 2,
-    opacity_index = 3,
-    rotation_index = 4,
+// BEGIN_ENUM(Gaussian_Data_Index)
+// xyz_index = 0,
+//     scale_index = 1,
+//     feature_index = 2,
+//     opacity_index = 3,
+//     rotation_index = 4,
 
-    depth_index = 11,
-    clamped_index = 12,
-    radii_index = 13,
-    mean2d_index = 14,
-    conv3d_index = 15,
-    conic_opacity = 16,
-    rgb_index = 17,
-    tiles_touched_index = 18,
-    point_offsets_index = 19,
-    eAddress = 22,
+//     depth_index = 11,
+//     clamped_index = 12,
+//     radii_index = 13,
+//     mean2d_index = 14,
+//     conv3d_index = 15,
+//     conic_opacity = 16,
+//     rgb_index = 17,
+//     tiles_touched_index = 18,
+//     point_offsets_index = 19,
+//     eAddress = 22,
 
-    render_out_index = 10 END_ENUM();
+//     render_out_index = 10 END_ENUM();
 
-struct PushContant_GS
-{
+BEGIN_ENUM(Gaussian_Binding_Index)
+eAddress = 0,
+    render_out_index = 1 END_ENUM();
+
+struct PushContant_GS {
     mat4 viewMatrix;
     mat4 projMatrix;
     vec3 campos;
@@ -42,8 +45,7 @@ struct PushContant_GS
     int point_num;
 };
 
-struct GS_Address
-{
+struct GS_Address {
     uint64_t xyz_address;
     uint64_t scale_address;
     uint64_t feature_address;
@@ -71,35 +73,29 @@ struct GS_Address
     uint64_t histograms_address;
 };
 
-
 struct TestAddr {
     uint64_t element_in_address;
     uint64_t pinigpong_address;
     uint64_t histograms_address;
 };
 
-
-struct PushContant_Sort
-{
+struct PushContant_Sort {
     uint g_num_elements;
 };
-struct PushContant_SortHisgram
-{
+struct PushContant_SortHisgram {
     uint g_num_elements;
     uint g_shift;
     uint g_num_workgroups;
     uint g_num_blocks_per_workgroup;
     uint pass;
-    };
+};
 
-struct PushContant_Sum
-{
+struct PushContant_Sum {
     int step;
     uint g_num_elements;
 };
 
-struct PushContant_Dup
-{
+struct PushContant_Dup {
     uint g_num_elements;
 };
 

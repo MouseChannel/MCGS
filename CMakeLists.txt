@@ -65,7 +65,7 @@ include(MCRT/cmake/FindIMGUI.cmake)
  include_directories(${PROJECT_SOURCE_DIR}/include)
  link_libraries(src)
 # IF (WIN32)
-#     target_link_libraries(imgui glfw Vulkan)
+#     target_link_libraries(imgui glfw Vulkan)pp
 # ELSEIF (UNIX)
 #     # in linux link Vulkan::Vulkan
 #     target_link_libraries(imgui glfw Vulkan::Vulkan)
@@ -75,10 +75,10 @@ include(MCRT/cmake/FindIMGUI.cmake)
    target_include_directories(imgui PUBLIC ${MCRT_INCLUDE_DIRS})
 
    # find_package(TBB REQUIRED COMPONENTS tbb)
-   target_link_libraries(mcrt_src PUBLIC imgui )
+   target_link_libraries(mcrt_src PUBLIC imgui assimp)
 
 
-   add_subdirectory(${PROJECT_SOURCE_DIR}/App)
+   add_subdirectory(${PROJECT_SOURCE_DIR}/app)
 
 
 
