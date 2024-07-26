@@ -34,7 +34,8 @@ jobs:
       run: sudo apt-get install -y libglm-dev
 
         
-
+    - name: Install assimp
+      run: sudo apt-get install -y libassimp-dev
     - name: Install Vulkan
       run: sudo apt-get install -y libvulkan1 libvulkan-dev
       
