@@ -4,11 +4,12 @@ use Vulkan Compute-Shader to rewrite [3D Gaussian splatting](https://repo-sam.in
 
 ### roadmap
 
-- :white_check_mark: Minimal example to verify feasibility(2024-4-10🎊works!)
-- :ballot_box_with_check: **SOTA** GPU sort,by [Nvidia 2022 research](https://research.nvidia.com/publication/2022-06_onesweep-faster-least-significant-digit-radix-sort-gpus)  
+- ✅ Minimal example to verify feasibility(2024-4-10🎊works!)
+- ☑️ **SOTA** GPU sort,by [Nvidia 2022 research](https://research.nvidia.com/publication/2022-06_onesweep-faster-least-significant-digit-radix-sort-gpus)  
         -  (2024-4-21)multi-pass sort make it **4x** faster than single pass,but still slower than sota
-- :white_large_square: Camera control(in develop current now)
-- :white_large_square: OpenXR support
+        
+- ✅ Camera control
+- ⬜ OpenXR support(in develop current now)
 
 ### showcase
 
