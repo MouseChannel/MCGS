@@ -96,17 +96,16 @@ void main()
                 key <<= 32;
 
                 key |= depth.depth[idx];
+                if(off<1625771){
+
                 point_list_keys.point_list_keys[off] = key;
                 point_list.point_list[off] = idx;
-
-                // g_elements_in[off] = key;
-                // g_elements_out[off] = 12345;
-                // point_list.point_list[off] = 12345;
-                off++;
-                if (tt == 0) {
-                    // debugPrintfEXT("message tt %u\n", off);
                 }
-                // debugPrintfEXT("message %lu\n", key);
+
+               
+                off++;
+              
+              
             }
         }
     } else {

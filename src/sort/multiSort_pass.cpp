@@ -11,9 +11,9 @@ void MultiSortPass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_s
     auto device = Context::Get_Singleton()->get_device();
     auto queue = device->Get_Compute_queue();
     PushContant_SortHisgram pc {
-        .g_num_elements = 1625771,
+        .g_num_elements = static_cast<uint>(GaussianContext::num_renders),
         // .g_shift = i * 8,
-        .g_num_workgroups = uint(ceil((float)1625771 / 256.f / 32.f)),
+        .g_num_workgroups = uint(ceil((float)GaussianContext::num_renders / 256.f / 32.f)),
         .g_num_blocks_per_workgroup = 32,
         // .pass = cur_fight
     };

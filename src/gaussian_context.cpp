@@ -28,6 +28,9 @@
 template class MCRT::ComputePass<MCGS::GaussianContext>;
 namespace MCGS {
 // using namespace MCRT;
+int GaussianContext::num_renders = 1625771;
+// int GaussianContext::num_renders = 1000000;
+
 void GaussianContext::prepare()
 {
     ComputeContext::prepare();
@@ -284,7 +287,7 @@ void GaussianContext::get_gaussian_raw_data()
     geometry_state = GeometryState(point_num);
     // binning_state = BinningState(xyz_d.size() * 10);
 
-    binning_state = BinningState(1625771);
+    binning_state = BinningState(GaussianContext::num_renders);
     image_state = ImageState(800 * 800);
     auto addr = GS_Address {
         .xyz_address = xyz_buffer->get_address(),

@@ -25,6 +25,7 @@ private:
     //    ComputePass<>* a;
 
 public:
+    static int num_renders;
     void prepare() override;
     std::shared_ptr<CommandBuffer> BeginFrame() override;
     void Submit() override;

@@ -1,6 +1,7 @@
 
 
 #include "sumPass.hpp"
+#include "Wrapper/Device.hpp"
 
 namespace MCGS {
 
@@ -50,13 +51,13 @@ void sum_Pass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_size_y
         vk::ShaderStageFlagBits::eCompute,
         0,
         pc);
-    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                           get_pipeline()->get_layout(),
-                           0,
-                           get_DescriptorSet()->get_handle(),
-                           {});
-    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                     get_pipeline()->get_handle());
+    // cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+    //                        get_pipeline()->get_layout(),
+    //                        0,
+    //                        get_DescriptorSet()->get_handle(),
+    //                        {});
+    // cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+    //                  get_pipeline()->get_handle());
 
     cmd.pipelineBarrier2(vk::DependencyInfo()
                              .setMemoryBarriers(
@@ -75,13 +76,13 @@ void sum_Pass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_size_y
         vk::ShaderStageFlagBits::eCompute,
         0,
         pc);
-    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                           get_pipeline()->get_layout(),
-                           0,
-                           get_DescriptorSet()->get_handle(),
-                           {});
-    cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
-                     get_pipeline()->get_handle());
+    // cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+    //                        get_pipeline()->get_layout(),
+    //                        0,
+    //                        get_DescriptorSet()->get_handle(),
+    //                        {});
+    // cmd.bindPipeline(vk::PipelineBindPoint::eCompute,
+    //                  get_pipeline()->get_handle());
 
     cmd.pipelineBarrier2(vk::DependencyInfo()
                              .setMemoryBarriers(
@@ -91,12 +92,22 @@ void sum_Pass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_size_y
                                      .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                      .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
 
+    std::cout<<contextp->get_point_num()<<std::endl;
     cmd.dispatch(ceil(contextp->get_point_num() / 1024.f), 1, 1);
+
+    // Context::Get_Singleton()->get_device()->get_handle().waitIdle();
+
+
+
+
+
+
+ 
 }
 void sum_Pass::Init()
 {
-    ComputePass<GaussianContext>::    SetShaderModule("include/shaders/inclusiveSum.comp.spv");
-    ComputePass<GaussianContext>:: Prepare_DescriptorSet([&]() {
+    ComputePass<GaussianContext>::SetShaderModule("include/shaders/inclusiveSum.comp.spv");
+    ComputePass<GaussianContext>::Prepare_DescriptorSet([&]() {
         AddDescriptorTarget(std::make_shared<BufferDescriptorTarget>(
             m_computeContext.lock()->get_address_buffer(),
             (int)Gaussian_Binding_Index::eAddress,
@@ -104,6 +115,6 @@ void sum_Pass::Init()
             vk::DescriptorType::eStorageBuffer,
             get_DescriptorSet()));
     });
-    ComputePass<GaussianContext>:: prepare_pipeline(sizeof(PushContant_Sum));
+    ComputePass<GaussianContext>::prepare_pipeline(sizeof(PushContant_Sum));
 }
 }

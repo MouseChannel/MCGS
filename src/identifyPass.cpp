@@ -9,7 +9,7 @@ Identify_Pass::Identify_Pass(std::weak_ptr<GaussianContext> context)
 }
 void Identify_Pass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_size_y, int local_size_z)
 {
-    auto num_render = 1625771;
+    auto num_render = GaussianContext::num_renders;
     cmd.pushConstants<uint32_t>(
         get_pipeline()
             ->get_layout(),

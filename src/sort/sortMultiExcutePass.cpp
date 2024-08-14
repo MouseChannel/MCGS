@@ -31,7 +31,7 @@ void SortMulti_Pass::Dispach(vk::CommandBuffer cmd, int local_size_x, int local_
                                      .setSrcAccessMask(vk::AccessFlagBits2::eShaderWrite)
                                      .setDstStageMask(vk::PipelineStageFlagBits2::eComputeShader)
                                      .setDstAccessMask(vk::AccessFlagBits2::eShaderRead)));
-    cmd.dispatch(ceil((float)1625771 / 256.f / 32.f), 1, 1);
+    cmd.dispatch(ceil((float)GaussianContext::num_renders / 256.f / 32.f), 1, 1);
 }
 void SortMulti_Pass::Init()
 {
