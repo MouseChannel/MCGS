@@ -1,0 +1,51 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_EXT_debug_printf : enable
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#define WORKER_GROUP_SIZE 1024
+#define SUBGROUP_SIZE 32
+
+layout(local_size_x = 1024) in; 
+#include "./push_contant.h"
+ 
+layout(std430, set = 0, binding = 0) buffer pingBuffer
+{
+    uint ping[];
+};
+ 
+
+layout(std430, set = 0, binding = 1) buffer pongBuffer
+{
+    uint pong[];
+};
+ 
+
+layout(push_constant) uniform _PushContant
+{
+    uint timestep;
+};
+
+void main()
+{
+     uint index = gl_GlobalInvocationID.x;
+      if (timestep % 2 == 0) {
+        if (index < pow(2, timestep)) {
+            pong[index] = ping[index];
+        } else {
+            uint index2 = index - uint(pow(2, timestep));
+            pong[index] = ping[index] + ping[index2];
+        }
+    } else {
+        if (index < pow(2, timestep)) {
+            ping[index] = pong[index];
+        } else {
+            uint index2 = index - uint(pow(2, timestep));
+            ping[index] = pong[index] + pong[index2];
+        }
+    }
+}
