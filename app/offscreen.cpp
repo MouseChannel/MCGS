@@ -1,5 +1,5 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "example/offscreen/App.hpp"
+#include "App.hpp"
 #include <iostream>
 #include <vulkan/vulkan_core.h>
 

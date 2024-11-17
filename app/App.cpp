@@ -1,10 +1,10 @@
-#include "example/raster/App.hpp"
+#include "App.hpp"
 // #include "Helper/ImGui_Context.hpp"
-#include "Helper/Uniform_Manager.hpp"
+#include "Context/Context.hpp"
+
+#include "Imgui/imgui.h"
 #include "Rendering/AppWindow.hpp"
-#include "Rendering/Context.hpp"
-#include "example/offscreen/offscreen_context.hpp"
-#include "lib/imgui/imgui.h"
+#include "offscreen_context.hpp"
 inline void SetupImGuiStyle(bool bStyleDark_, float alpha_)
 {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -103,7 +103,6 @@ void App::run()
         window->PollEvents();
         auto cmd = context->Begin_Frame();
 
-        
         context->EndFrame();
     }
     Context::Get_Singleton()->get_device()->get_handle().waitIdle();
