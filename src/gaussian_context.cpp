@@ -24,7 +24,7 @@
 #include "rasterPass.hpp"
 #include "sort/multiSort_pass.hpp"
 #include "sumPass.hpp"
-#include <Wrapper/CommandBuffer.hpp>
+#include "Wrapper/CommandBuffer.hpp"
 template class MCRT::ComputePass<MCGS::GaussianContext>;
 namespace MCGS {
 // using namespace MCRT;
@@ -237,6 +237,7 @@ GaussianContext::ImageState::ImageState(int size)
 
 void GaussianContext::get_gaussian_raw_data()
 {
+    
     auto gs_data = MCGS::load_ply("point_cloud.ply");
     auto xyz_d = MCGS::get_xyz(gs_data);
     for (int i = 0; i < xyz_d.size() / 3; i++) {
