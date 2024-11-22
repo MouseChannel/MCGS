@@ -90,14 +90,14 @@ inline void SetupImGuiStyle(bool bStyleDark_, float alpha_)
 namespace MCRT {
 void App::init()
 {
-    window.reset(new Window(1200, 800));
+    window.reset(new Window(1600, 900));
     offscreen_context::Get_Singleton()->prepare(window);
 }
 
 void App::run()
 {
     // std::cout << "oonon" << std::endl;
-    SetupImGuiStyle(true, 0.95f);
+    // SetupImGuiStyle(true, 0.95f);
     auto& context = offscreen_context::Get_Singleton();
     while (!window->Should_Close()) {
         window->PollEvents();

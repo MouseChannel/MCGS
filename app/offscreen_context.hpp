@@ -3,8 +3,7 @@
 
 #include "Context/raster_context.hpp"
 // #include "shaders/Data_struct.h"
-#include "Rendering/GraphicContext.hpp" 
- 
+#include "Rendering/GraphicContext.hpp"
 
 namespace MCRT {
 class Buffer;
@@ -12,7 +11,7 @@ class Buffer;
 class offscreen_context : public raster_context {
 public:
     enum Pass_index { Graphic };
- 
+
     offscreen_context();
     ~offscreen_context();
     std::shared_ptr<CommandBuffer> Begin_Frame() override;
@@ -44,13 +43,9 @@ public:
 
 private:
     std::shared_ptr<CommandBuffer> BeginGraphicFrame() override;
-    std::shared_ptr<Texture> target_texture; void EndGraphicFrame() override;
+    std::shared_ptr<Texture> target_texture;
+    void EndGraphicFrame() override;
     std::shared_ptr<Mesh> offscreen_mesh;
-
-
-    vk::Buffer indirecBuffer;
-
-    
 };
 
 }

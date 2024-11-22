@@ -3,7 +3,9 @@
 #extension GL_EXT_debug_printf : enable
 
 #include "Binding.h"
-#include "shaders/Data_struct.h"
+
+#include "Shader/Data_struct.h"
+
 layout(location = 0) out vec4 outColor;
 layout(location = e_texCoord) in vec2 in_texCoord1;
 layout(set = e_graphic, binding = e_offscreen) uniform sampler2D img;

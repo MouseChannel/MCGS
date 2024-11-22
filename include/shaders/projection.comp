@@ -2,34 +2,54 @@
 
 #extension GL_GOOGLE_include_directive : enable
 #include "DataStruct.h"
-
-layout(std430, set = 1, binding = 2) writeonly buffer _IndexedIndirectCommand
+layout(set = 0, binding = e_camera) uniform Camera
 {
+    mat4 projection;
+    mat4 view;
+    vec3 camera_position;
+    float pad0;
+    uvec2 screen_size; // (width, height)
+};
+
+layout(push_constant, std430) uniform PushConstants
+{
+    mat4 model;
+};
+
+layout(std430, binding = e_indir_cmd)writeonly buffer _IndexedIndirectCommand
+{
+
     IndexedIndirectCommand indexedIndirectCommand;
 };
 
-layout(std430, set = 1, binding = 2) buffer GaussianCov3d
-{
-    //    float gaussian_cov3d[];// (N, 6)
-    mat3 gaussian_conv3d[];
-};
-layout(std430, set = 3, binding = 0) readonly buffer _GaussianPoint
+layout(std430, binding = e_gaussian_raw_point) readonly buffer _GaussianPoint
 {
     GaussianPoint points[];
 };
-layout(std430, set = 3, binding = 2) readonly buffer _Instance
+layout(std430, binding = e_instance_point)writeonly buffer _Instance
 {
-    Instance instances[];
+    InstancePoint instances[];
 };
+layout(std430, binding = e_inverse_index)readonly buffer InverseMap
+{
+    int inverse_map[]; // (N), inverse map from id to sorted index
+};
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {
     uint id = gl_GlobalInvocationID.x;
+    if (id == 0) {
+        indexedIndirectCommand.indexCount = indexedIndirectCommand.indexCount * 6;
+    }
+    int inverse_id = inverse_map[id];
+    if (inverse_id == -1)
+        return;
 
-    vec3 v0 = gaussian_conv3d[id][0];
-    vec3 v1 = gaussian_conv3d[id][1];
+    vec3 v0 = vec3(points[id].conv3d[0]);
+    vec3 v1 = vec3(points[id].conv3d[1]);
     vec4 pos = vec4(points[id].pos, 1);
-    float[48] gaussian_sh = points[id].sh;
+    lowp vec4[12] gaussian_sh = points[id].sh;
 
     // direction in model space for SH calculation
     vec4 camera_podel_position = inverse(model) * vec4(camera_position, 1.f);
@@ -79,6 +99,7 @@ void main()
 
     pos = projection * pos;
     pos = pos / pos.w;
+    vec3 color;
     {
         // calculate spherical harmonics
         const float C0 = 0.28209479177387814f;
@@ -125,16 +146,28 @@ void main()
         //        mat3x4 sh3 = mat3x4(gaussian_sh[id * 12 + 3], gaussian_sh[id * 12 + 7],
         //        gaussian_sh[id * 12 + 11]);
 
-        mat3x4 sh0 = mat3x4(gaussian_sh[0], gaussian_sh[4], gaussian_sh[8]);
-        mat3x4 sh1 = mat3x4(gaussian_sh[1], gaussian_sh[5], gaussian_sh[9]);
-        mat3x4 sh2 = mat3x4(gaussian_sh[2], gaussian_sh[6], gaussian_sh[10]);
-        mat3x4 sh3 = mat3x4(gaussian_sh[3], gaussian_sh[7], gaussian_sh[11]);
-
+          mat3x4 sh0 = mat3x4(gaussian_sh[0], gaussian_sh[4], gaussian_sh[8]);
+          mat3x4 sh1 = mat3x4(gaussian_sh[1], gaussian_sh[5], gaussian_sh[9]);
+          mat3x4 sh2 = mat3x4(gaussian_sh[2], gaussian_sh[6], gaussian_sh[10]);
+          mat3x4 sh3 = mat3x4(gaussian_sh[3], gaussian_sh[7], gaussian_sh[11]);
         // row vector-matrix multiplication
-        vec3 color = basis0 * sh0 + basis1 * sh1 + basis2 * sh2 + basis3 * sh3;
+        color = basis0 * sh0 + basis1 * sh1 + basis2 * sh2 + basis3 * sh3;
 
         // translation and clip
         color = max(color + 0.5f, 0.f);
     }
-    float opacity = gaussian_opacity[id];
+    float opacity = points[id].opacity;
+    // vec3 ndc_position;
+    // vec2 scale
+    // float theta;
+    // vec4 color;
+
+    instances[inverse_id].ndc_position = vec3(pos);
+    instances[inverse_id].scale = vec2(s0, s1);
+
+    // instances[inverse_id].scale = vec2(screen_size.x, screen_size.y);
+
+    instances[inverse_id]
+        .theta = theta;
+    instances[inverse_id].color = vec4(color, opacity);
 }

@@ -23,7 +23,7 @@
 
 # target_link_libraries(src PUBLIC mcrt_raster_src imgui)
 
-add_executable(MCGS offscreen.cpp offscreen_context.cpp App.cpp GaussianContext.cpp)
+add_executable(MCGS offscreen.cpp offscreen_context.cpp App.cpp )
 target_link_libraries(MCGS src)
 
 # target_include_directories(MCGS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

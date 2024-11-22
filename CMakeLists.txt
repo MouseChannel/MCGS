@@ -21,7 +21,7 @@ project(MCGS LANGUAGES CXX )
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/GSContext.cpp)
+file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/GSContext.cpp ${PROJECT_SOURCE_DIR}/src/sort.cpp)
 
 
 add_library(src ${SRC})
@@ -62,6 +62,7 @@ target_link_libraries(src PUBLIC MCRT)
 
 
    add_subdirectory(${PROJECT_SOURCE_DIR}/app)
+
 
 
 
