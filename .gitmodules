@@ -1,4 +1,4 @@
 [submodule "MCRT"]
 	path = MCRT
 	url = https://github.com/MouseChannel/MCRT.git
-    branch = mcgs
+    branch = gaussian-splatting
