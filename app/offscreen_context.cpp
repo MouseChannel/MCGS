@@ -66,7 +66,7 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
 
     PASS.resize(2);
     {
-        PASS[1] = std::make_shared<GSContext>("/home/mousechannel/project/MCGS/point_cloudo.ply");
+        PASS[1] = std::make_shared<GSContext>("point_cloud.ply");
         PASS[1]->prepare();
     }
     {
@@ -152,8 +152,8 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
                 graphic_context->m_pipelines[eMainPipeline]
                     .reset(
                         new Graphic_Pipeline(graphic_context->Get_render_pass(),
-                                             "/home/mousechannel/project/MCGS/include/shaders/splat.vert.spv",
-                                             "/home/mousechannel/project/MCGS/include/shaders/splat.frag.spv",
+                                             "include/shaders/splat.vert.spv",
+                                             "include/shaders/splat.frag.spv",
                                              vk::CullModeFlagBits::eBack,
                                              true,
                                              false,

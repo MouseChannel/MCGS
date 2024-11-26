@@ -278,7 +278,7 @@ void GSContext::prepare()
         vk::DescriptorType::eStorageBuffer);
     pre_pool.reset(new DescriptorPool({ pre_set }));
     pre_set->build(pre_pool, 1);
-    pre_process_pass.reset(new ComputePass({ pre_set }, 4, "/home/mousechannel/project/MCGS/include/shaders/process.comp.spv"));
+    pre_process_pass.reset(new ComputePass({ pre_set }, 4, "include/shaders/process.comp.spv"));
     CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
                                [&](vk::CommandBuffer& cmd) {
                                    pre_process_pass->Dispach(
@@ -403,25 +403,25 @@ void GSContext::prepare()
         set->build(setpool, 1);
     }
     {
-        // auto rank_shader = std::make_shared<ShaderModule>("/home/mousechannel/project/MCGS/include/shaders/rank.comp.spv");
+        // auto rank_shader = std::make_shared<ShaderModule>("include/shaders/rank.comp.spv");
         // rank_pipeline.reset(new Compute_Pipeline(rank_shader));
         rank_pass.reset(new ComputePass(
             { set },
             sizeof(glm::mat4),
-            "/home/mousechannel/project/MCGS/include/shaders/rank.comp.spv"));
+            "include/shaders/rank.comp.spv"));
     }
     {
         inverse_pass.reset(new ComputePass(
             { set },
             sizeof(glm::mat4),
-            "/home/mousechannel/project/MCGS/include/shaders/inverseIndex.comp.spv"));
+            "include/shaders/inverseIndex.comp.spv"));
         ;
     }
     {
         projection_pass.reset(new ComputePass(
             { set },
             sizeof(glm::mat4),
-            "/home/mousechannel/project/MCGS/include/shaders/projection.comp.spv"));
+            "include/shaders/projection.comp.spv"));
         ;
     }
 

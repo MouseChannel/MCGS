@@ -76,13 +76,13 @@ void gpusort::Init(uint all_point_count, std::shared_ptr<Buffer> _indirect_buffe
     // std::shared_ptr<Compute_Pipeline> spinePipeline;
     // std::shared_ptr<Compute_Pipeline> downsweepKeyValuePipeline;
 
-    auto upsweep_shader = std::make_shared<ShaderModule>("/home/mousechannel/project/MCGS/include/shaders/gpusort/upsweep.comp.spv");
+    auto upsweep_shader = std::make_shared<ShaderModule>("include/shaders/gpusort/upsweep.comp.spv");
     // upsweepPipeline.reset(new Compute_Pipeline(upsweep_shader));
     // upsweepPipeline->Build();
-    auto spineshader = std::make_shared<ShaderModule>("/home/mousechannel/project/MCGS/include/shaders/gpusort/spine.comp.spv");
+    auto spineshader = std::make_shared<ShaderModule>("include/shaders/gpusort/spine.comp.spv");
     // spinePipeline.reset(new Compute_Pipeline(spineshader));
     // spinePipeline->Build();
-    auto downsweep_shader = std::make_shared<ShaderModule>("/home/mousechannel/project/MCGS/include/shaders/gpusort/downsweep.comp.spv");
+    auto downsweep_shader = std::make_shared<ShaderModule>("include/shaders/gpusort/downsweep.comp.spv");
     // downsweepKeyValuePipeline.reset(new Compute_Pipeline(downsweep_shader));
     // downsweepKeyValuePipeline->Build();
 
