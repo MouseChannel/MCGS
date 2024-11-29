@@ -1,9 +1,12 @@
 #include "GSContext.hpp"
 #include "Helper/Camera.hpp"
 #include "Helper/CommandManager.hpp"
+#include "Rendering/GraphicContext.hpp"
 #include "Wrapper/CommandBuffer.hpp"
 #include "Wrapper/ComputePass/ComputePass.hpp"
 #include "shaders/DataStruct.h"
+
+#include <Imgui/imgui.h>
 // pos + normal+ de_012 + de_rest+opacity + scale + rot
 const int vert_attr = 3 + 3 + 3 + 45 + 1 + 3 + 4;
 constexpr int local_size = 256;
@@ -214,18 +217,7 @@ GSContext::GSContext(std::string path)
             feature_d[j * 48 + 17 + i] = dc_rest[j * 45 + 15 + i];
             feature_d[j * 48 + 33 + i] = dc_rest[j * 45 + 30 + i];
         }
-        // for (int i = 0; i < 3; i++) {
 
-        //     for (int j = 0; j < 3; j++) {
-        //         feature_d[j * 48 + j * 16] = dc_012[j + j + 0];
-
-        //         feature_d[i * 48 + j] = dc_012[i * 3 + j];
-        //     }
-        //     for (int j = 0; j < 45; j++) {
-        //         feature_d[i * 48 + 3 + j] = dc_rest[i * 45 + j];
-        //     }
-        // }
-        int s = 0;
     }
     std::vector<GaussianPoint> raw_data_cpu(opacity_d.size());
     for (int i = 0; i < opacity_d.size(); i++) {
@@ -253,10 +245,15 @@ GSContext::GSContext(std::string path)
     }
     raw_data = Buffer::CreateDeviceBuffer(raw_data_cpu.data(), sizeof(raw_data_cpu[0]) * raw_data_cpu.size(), vk::BufferUsageFlagBits::eStorageBuffer);
     all_point_count = opacity_d.size();
+
     point_count_buffer = Buffer::CreateDeviceBuffer(
         &all_point_count,
         sizeof(all_point_count),
         vk::BufferUsageFlagBits::eStorageBuffer);
+    visiable_count_buffer = Buffer::CreateDeviceBuffer(
+        nullptr,
+        sizeof(uint32_t),
+        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc);
 
     m_gpu_sort = std::make_shared<gpusort>();
 }
@@ -294,11 +291,6 @@ void GSContext::prepare()
 
     inverse_index_buffer = Buffer::CreateDeviceBuffer(nullptr, all_point_count * sizeof(uint32_t), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
     vk::DrawIndexedIndirectCommand indirct_cmd;
-    indirct_cmd.setFirstIndex(0)
-        .setFirstInstance(0)
-        .setIndexCount(0) // modified in shader
-        .setInstanceCount(1)
-        .setVertexOffset(0);
 
     indirct_cmd_buffer = Buffer::CreateDeviceBuffer(&indirct_cmd, sizeof(vk::DrawIndexedIndirectCommand), vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc);
     std::vector<uint32_t> splat_index;
@@ -317,48 +309,15 @@ void GSContext::prepare()
         splat_index.size() * sizeof(uint32_t),
         vk::BufferUsageFlagBits::eIndexBuffer);
 
-    // auto ee = sizeof(InstancePoint);
     instance_buffer = Buffer::CreateDeviceBuffer(
         nullptr,
         all_point_count * sizeof(InstancePoint),
         vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eVertexBuffer);
 
-    glm::mat4 p;
-    {
-        float aspect = static_cast<float>(1600) / 900;
-        glm::mat4 projection = glm::perspective(glm::radians(60.f), aspect, 0.01f, 100.f);
-
-        // // gl to vulkan projection matrix
-        glm::mat4 conversion = glm::mat4(1.f);
-        conversion[1][1] = -1.f;
-        conversion[2][2] = 0.5f;
-        conversion[3][2] = 0.5f;
-        p = conversion * projection;
-    }
-    glm::mat4 v;
-
-    glm::vec3 center_(0.f, 0.f, 0.f);
-    // camera = center + r (sin phi sin theta, cos phi, sin phi cos theta)
-    float r_ = 2.f;
-    float phi_ = glm::radians(45.f);
-    float theta_ = glm::radians(45.f);
-
-    const auto sin_phi = std::sin(phi_);
-    const auto cos_phi = std::cos(phi_);
-    const auto sin_theta = std::sin(theta_);
-    const auto cos_theta = std::cos(theta_);
-    auto eye = center_ +
-        r_ * glm::vec3(sin_phi * sin_theta, cos_phi, sin_phi * cos_theta);
-    v = glm::lookAt(eye, center_, glm::vec3(0.f, 1.f, 0.f));
-
     CameraInfo camera {
         .projection = Context::Get_Singleton()->get_camera()->Get_p_matrix(),
         .view = Context::Get_Singleton()->get_camera()->Get_v_matrix(),
         .camera_position = Context::Get_Singleton()->get_camera()->get_pos(),
-        // .projection = p,
-        // .view = v,
-        // .camera_position = eye,
-
         .pad = 0,
         .screen_size = glm::uvec2(1600, 900)
     };
@@ -372,6 +331,10 @@ void GSContext::prepare()
                                        vk::DescriptorType ::eStorageBuffer);
         set->AddBufferDescriptorTarget(point_count_buffer,
                                        e_point_count,
+                                       vk::ShaderStageFlagBits::eCompute,
+                                       vk::DescriptorType ::eStorageBuffer);
+        set->AddBufferDescriptorTarget(visiable_count_buffer,
+                                       e_visiable_count,
                                        vk::ShaderStageFlagBits::eCompute,
                                        vk::DescriptorType ::eStorageBuffer);
         set->AddBufferDescriptorTarget(raw_data,
@@ -403,8 +366,6 @@ void GSContext::prepare()
         set->build(setpool, 1);
     }
     {
-        // auto rank_shader = std::make_shared<ShaderModule>("include/shaders/rank.comp.spv");
-        // rank_pipeline.reset(new Compute_Pipeline(rank_shader));
         rank_pass.reset(new ComputePass(
             { set },
             sizeof(glm::mat4),
@@ -425,14 +386,26 @@ void GSContext::prepare()
         ;
     }
 
-    m_gpu_sort->Init(all_point_count, indirct_cmd_buffer);
+    m_gpu_sort->Init(all_point_count, visiable_count_buffer);
 }
 void GSContext::tick(std::shared_ptr<CommandBuffer> command)
 {
     auto cmd = command->get_handle();
+    {
+        cmd.updateBuffer<CameraInfo>(camera_buffer->get_handle(),
+                                     0,
+                                     CameraInfo {
+                                         .projection = Context::Get_Singleton()->get_camera()->Get_p_matrix(),
+                                         .view = Context::Get_Singleton()->get_camera()->Get_v_matrix(),
+                                         .camera_position = Context::Get_Singleton()->get_camera()->get_pos(),
+
+                                         .pad = 0,
+                                         .screen_size = glm::uvec2(1600, 900) });
+    }
     { // rank
 
-        cmd.fillBuffer(indirct_cmd_buffer->get_handle(), 0, sizeof(uint32_t), 0);
+        cmd.fillBuffer(visiable_count_buffer->get_handle(), 0, sizeof(uint32_t), 0);
+
         cmd.pipelineBarrier(
             vk::PipelineStageFlagBits::eTransfer,
             vk::PipelineStageFlagBits::eComputeShader,
@@ -450,12 +423,6 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
             0,
             glm::mat4(1));
         rank_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-        // cmd.bindDescriptorSets(vk::PipelineBindPoint ::eCompute,
-        //                        rank_pipeline->get_layout(),
-        //                        0,
-        //                        set->get_handle()[0],
-        //                        {});
-        // cmd.dispatch(ceil(float(all_point_count) / local_size), 1, 1);
     }
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
                         vk::PipelineStageFlagBits::eComputeShader,
@@ -465,7 +432,6 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
                             .setDstAccessMask(vk::AccessFlagBits::eShaderRead),
                         {},
                         {});
-    // LookDeviceBuffer(key_buffer->get_handle(), 1000);
     {
         m_gpu_sort->sort(cmd, key_buffer, value_buffer);
     }
@@ -479,24 +445,7 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
                         {});
     {
         cmd.fillBuffer(inverse_index_buffer->get_handle(), 0, all_point_count * sizeof(uint32_t), -1);
-        // vkCmdFillBuffer(cb, splat_storage_.inverse_index, 0, loaded_point_count_ * sizeof(uint32_t), -1);
-        // cmd.debugMarkerBeginEXT(vk::DebugMarkerMarkerInfoEXT().setPMarkerName("inverse_pass"));
-        // barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-        // barrier.srcAccessMask =
-        //     VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-        // barrier.dstAccessMask =
-        //     VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-        // vkCmdPipelineBarrier(cb,
-        //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-        //                          VK_PIPELINE_STAGE_TRANSFER_BIT,
-        //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        //                      0,
-        //                      1,
-        //                      &barrier,
-        //                      0,
-        //                      NULL,
-        //                      0,
-        //                      NULL);
+
         cmd.pipelineBarrier(
             vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
             vk::PipelineStageFlagBits::eComputeShader,
@@ -508,7 +457,7 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
             {});
 
         inverse_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-        // cmd.debugMarkerEndEXT();
+
     }
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
                         vk::PipelineStageFlagBits::eComputeShader,
@@ -524,9 +473,8 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
             vk::ShaderStageFlagBits::eCompute,
             0,
             glm::mat4(1));
-        // cmd.debugMarkerBeginEXT(vk::DebugMarkerMarkerInfoEXT().setPMarkerName("projection_pass"));
-        projection_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-        // cmd.debugMarkerEndEXT();
+                projection_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
+
     }
 
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
@@ -540,107 +488,7 @@ void GSContext::tick(std::shared_ptr<CommandBuffer> command)
 }
 std::shared_ptr<CommandBuffer> GSContext::BeginFrame()
 {
-    auto command = ComputeContext::BeginFrame();
-    auto cmd = command->get_handle();
-    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(), [&](vk::CommandBuffer cmd) {
-    //     { // rank
-    //         cmd.pushConstants<glm::mat4>(
-    //             // rank_pipeline->get_layout(),
-    //             rank_pass->get_pipeline()->get_layout(),
-    //             vk::ShaderStageFlagBits::eCompute,
-    //             0,
-    //             glm::mat4(1));
-    //         rank_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-    //         // cmd.bindDescriptorSets(vk::PipelineBindPoint ::eCompute,
-    //         //                        rank_pipeline->get_layout(),
-    //         //                        0,
-    //         //                        set->get_handle()[0],
-    //         //                        {});
-    //         // cmd.dispatch(ceil(float(all_point_count) / local_size), 1, 1);
-    //     } });
-    // // cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-    // //                     vk::PipelineStageFlagBits::eComputeShader,
-    // //                     vk::DependencyFlagBits::eByRegion,
-    // //                     vk::MemoryBarrier()
-    // //                         .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-    // //                         .setDstAccessMask(vk::AccessFlagBits::eShaderRead),
-    // //                     {},
-    // //                     {});
-    // // LookDeviceBuffer(key_buffer->get_handle(), 1000);
-    // CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(), [&](vk::CommandBuffer cmd) {
-    //     {
 
-    //         m_gpu_sort->sort(cmd, key_buffer, value_buffer);
-
-    //         // static auto copy = vk::BufferCopy()
-    //         //                        .setSize(sizeof(uint32_t))
-    //         //                        .setDstOffset(0)
-    //         //                        .setSrcOffset(0);
-    //         // _cmd.copyBuffer(m_gpu_sort->indirect_buffer->get_handle(), m_gpu_sort->storage_buffer->get_handle(), copy);
-    //     }
-    // });
-    // LookDeviceBuffer1(value_buffer->get_handle(), 10000);
-    // LookDeviceBuffer1(m_gpu_sort->storage_buffer->get_handle(), 20);
-    // LookDeviceBuffer1(m_gpu_sort->storage_buffer->get_handle(), 20);
-
-    cmd.pushConstants<glm::mat4>(
-        // rank_pipeline->get_layout(),
-        rank_pass->get_pipeline()->get_layout(),
-        vk::ShaderStageFlagBits::eCompute,
-        0,
-        glm::mat4(1));
-    rank_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                        vk::PipelineStageFlagBits::eComputeShader,
-                        vk::DependencyFlagBits::eByRegion,
-                        vk::MemoryBarrier()
-                            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-                            .setDstAccessMask(vk::AccessFlagBits::eShaderRead),
-                        {},
-                        {});
-    m_gpu_sort->sort(cmd, key_buffer, value_buffer);
-
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                        vk::PipelineStageFlagBits::eComputeShader,
-                        vk::DependencyFlagBits::eByRegion,
-                        vk::MemoryBarrier()
-                            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-                            .setDstAccessMask(vk::AccessFlagBits::eShaderRead),
-                        {},
-                        {});
-    {
-        // cmd.debugMarkerBeginEXT(vk::DebugMarkerMarkerInfoEXT().setPMarkerName("inverse_pass"));
-        inverse_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-        // cmd.debugMarkerEndEXT();
-    }
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                        vk::PipelineStageFlagBits::eComputeShader,
-                        vk::DependencyFlagBits::eByRegion,
-                        vk::MemoryBarrier()
-                            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-                            .setDstAccessMask(vk::AccessFlagBits::eShaderRead),
-                        {},
-                        {});
-    {
-        cmd.pushConstants<glm::mat4>(
-            projection_pass->get_pipeline()->get_layout(),
-            vk::ShaderStageFlagBits::eCompute,
-            0,
-            glm::mat4(1));
-        // cmd.debugMarkerBeginEXT(vk::DebugMarkerMarkerInfoEXT().setPMarkerName("projection_pass"));
-
-        projection_pass->Dispach(cmd, ceil(float(all_point_count) / local_size), 1, 1);
-        // cmd.debugMarkerEndEXT();
-    }
-
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                        vk::PipelineStageFlagBits::eVertexInput | vk::PipelineStageFlagBits::eDrawIndirect,
-                        vk::DependencyFlagBits::eByRegion,
-                        vk::MemoryBarrier()
-                            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-                            .setDstAccessMask(vk::AccessFlagBits::eIndirectCommandRead | vk::AccessFlagBits::eVertexAttributeRead),
-                        {},
-                        {});
-    return command;
+    return ComputeContext::BeginFrame();
 }
 }

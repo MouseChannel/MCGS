@@ -32,28 +32,29 @@ VkDeviceSize InoutSize(uint32_t elementCount)
 {
     return elementCount * sizeof(uint32_t);
 }
-void LookDeviceBuffer(vk::Buffer device_buffer, int size)
+// void LookDeviceBuffer(vk::Buffer device_buffer, int size)
+// {
+//     Context::Get_Singleton()->get_device()->Get_Graphic_queue().waitIdle();
+//     auto host_buffer = Buffer::create_buffer(nullptr, size, vk::BufferUsageFlagBits::eTransferDst);
+//     CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
+//                                [&](vk::CommandBuffer& cmd) {
+//                                    cmd.copyBuffer(
+//                                        device_buffer,
+//                                        host_buffer->get_handle(),
+//                                        vk::BufferCopy()
+//                                            .setDstOffset(0)
+//                                            .setSrcOffset(0)
+//                                            .setSize(size));
+//                                });
+//     auto cpu_raw_data = host_buffer->Get_mapped_data();
+//     std::vector<uint> data(size / 4);
+//     std::memcpy(data.data(), cpu_raw_data.data(), sizeof(data));
+//     int r = 0;
+// }
+void gpusort::Init(uint all_point_count, std::shared_ptr<Buffer> _visiable_buffer)
 {
-    Context::Get_Singleton()->get_device()->Get_Graphic_queue().waitIdle();
-    auto host_buffer = Buffer::create_buffer(nullptr, size, vk::BufferUsageFlagBits::eTransferDst);
-    CommandManager::ExecuteCmd(Context::Get_Singleton()->get_device()->Get_Graphic_queue(),
-                               [&](vk::CommandBuffer& cmd) {
-                                   cmd.copyBuffer(
-                                       device_buffer,
-                                       host_buffer->get_handle(),
-                                       vk::BufferCopy()
-                                           .setDstOffset(0)
-                                           .setSrcOffset(0)
-                                           .setSize(size));
-                               });
-    auto cpu_raw_data = host_buffer->Get_mapped_data();
-    std::vector<uint> data(size / 4);
-    std::memcpy(data.data(), cpu_raw_data.data(), sizeof(data));
-    int r = 0;
-}
-void gpusort::Init(uint all_point_count, std::shared_ptr<Buffer> _indirect_buffer)
-{
-    indirect_buffer = _indirect_buffer;
+    visiable_count_buffer = _visiable_buffer;
+
     elementCountSize = sizeof(uint32_t);
     histogramSize = HistogramSize(all_point_count);
     inoutSize = InoutSize(all_point_count);
@@ -70,21 +71,12 @@ void gpusort::Init(uint all_point_count, std::shared_ptr<Buffer> _indirect_buffe
             vk::BufferUsageFlagBits::eShaderDeviceAddress);
     partitionCount =
         RoundUp(all_point_count, PARTITION_SIZE);
-    // RoundUp(MAX_SPLAT_COUNT, PARTITION_SIZE);
-
-    // std::shared_ptr<Compute_Pipeline> upsweepPipeline;
-    // std::shared_ptr<Compute_Pipeline> spinePipeline;
-    // std::shared_ptr<Compute_Pipeline> downsweepKeyValuePipeline;
 
     auto upsweep_shader = std::make_shared<ShaderModule>("include/shaders/gpusort/upsweep.comp.spv");
-    // upsweepPipeline.reset(new Compute_Pipeline(upsweep_shader));
-    // upsweepPipeline->Build();
+
     auto spineshader = std::make_shared<ShaderModule>("include/shaders/gpusort/spine.comp.spv");
-    // spinePipeline.reset(new Compute_Pipeline(spineshader));
-    // spinePipeline->Build();
-    auto downsweep_shader = std::make_shared<ShaderModule>("include/shaders/gpusort/downsweep.comp.spv");
-    // downsweepKeyValuePipeline.reset(new Compute_Pipeline(downsweep_shader));
-    // downsweepKeyValuePipeline->Build();
+        auto downsweep_shader = std::make_shared<ShaderModule>("include/shaders/gpusort/downsweep.comp.spv");
+
 
     upsweepPass.reset(new ComputePass({}, sizeof(PushConstants), upsweep_shader));
     spinePass.reset(new ComputePass({}, sizeof(PushConstants), spineshader));
@@ -94,22 +86,9 @@ void gpusort::Init(uint all_point_count, std::shared_ptr<Buffer> _indirect_buffe
 void gpusort::sort(vk::CommandBuffer cmd, std::shared_ptr<Buffer> key_buffer, std::shared_ptr<Buffer> value_buffer)
 {
 
-    { // copy to get visiable_count
-      // cmd.copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, const vk::ArrayProxy<const vk::BufferCopy> &regions)
-      // cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-      //                     vk::PipelineStageFlagBits::eTransfer,
-      //                     vk::DependencyFlagBits::eByRegion,
-      //                     vk::MemoryBarrier()
-      //                         .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-      //                         .setDstAccessMask(vk::AccessFlagBits::eTransferRead),
-      //                     {},
-      //                     {});
-        // static auto copy = vk::BufferCopy()
-        //                        .setSize(sizeof(uint32_t))
-        //                        .setDstOffset(0)
-        //                        .setSrcOffset(0);
+    {
         cmd.copyBuffer(
-            indirect_buffer->get_handle(),
+            visiable_count_buffer->get_handle(),
             storage_buffer->get_handle(),
             vk::BufferCopy()
                 .setSize(sizeof(uint32_t))
@@ -122,11 +101,10 @@ void gpusort::sort(vk::CommandBuffer cmd, std::shared_ptr<Buffer> key_buffer, st
         sizeof(uint32_t),
         4 * RADIX * sizeof(uint32_t),
         0);
-    // LookDeviceBuffer(indirect_buffer->get_handle(), 20);
 
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
                         vk::PipelineStageFlagBits::eComputeShader,
-                        vk::DependencyFlagBits::eByRegion,
+                        vk::DependencyFlagBits::eDeviceGroup,
                         // 0,
                         vk::MemoryBarrier()
                             .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
@@ -137,22 +115,13 @@ void gpusort::sort(vk::CommandBuffer cmd, std::shared_ptr<Buffer> key_buffer, st
     auto storageAddress = storage_buffer->get_address();
     auto keysAddress = key_buffer->get_address();
     auto valuesAddress = value_buffer->get_address();
-    // PushConstants pushConstants;
-    // pushConstants.elementCountReference = storageAddress;
-    // pushConstants.globalHistogramReference = storageAddress + sizeof(uint32_t);
-    // pushConstants.partitionHistogramReference =
-    //     storageAddress + sizeof(uint32_t) + sizeof(uint32_t) * 4 * RADIX;
     for (int i = 0; i < 4; ++i) {
         // pushConstants.pass = i;
         auto native_keysInReference = keysAddress;
         auto native_keysOutReference = storageAddress + inoutOffset;
         auto native_valuesInReference = valuesAddress;
         auto native_valuesOutReference = storageAddress + inoutOffset + inoutSize;
-        // if (i % 2 == 1) {
-        //     std::swap(native_keysInReference, native_keysOutReference);
-        //     std::swap(native_valuesInReference, native_valuesOutReference);
-        // }
-        // {
+
         cmd.pushConstants<PushConstants>(
             upsweepPass->get_pipeline()->get_layout(),
             vk::ShaderStageFlagBits::eCompute,
@@ -162,10 +131,7 @@ void gpusort::sort(vk::CommandBuffer cmd, std::shared_ptr<Buffer> key_buffer, st
                 .elementCountReference = storageAddress,
                 .globalHistogramReference = storageAddress + sizeof(uint32_t),
                 .partitionHistogramReference = storageAddress + sizeof(uint32_t) + sizeof(uint32_t) * 4 * RADIX,
-                // .keysInReference =  native_keysInReference ,
-                // .keysOutReference = native_keysOutReference,
-                // .valuesInReference = native_valuesInReference,
-                // .valuesOutReference = native_valuesOutReference,
+
                 .keysInReference = i == 0 || i == 2 ? native_keysInReference : native_keysOutReference,
                 .keysOutReference = i == 0 || i == 2 ? native_keysOutReference : native_keysInReference,
                 .valuesInReference = i == 0 || i == 2 ? native_valuesInReference : native_valuesOutReference,

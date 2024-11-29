@@ -50,39 +50,6 @@ void main()
         points[id].conv3d[0] = vec4(res[0][0], res[1][0], res[2][0], 1);
         points[id].conv3d[1] = vec4(res[1][1], res[2][1], res[2][2], 1);
 
-        // if (gl_GlobalInvocationID.x == 0) {
-        //     debugPrintfEXT("message %f %f %f |%f %f %f \n",
-        //                    res[0][0],
-        //                    res[1][0],
-        //                    res[2][0],
-        //                    res[0][1],
-        //                    res[1][1],
-        //                    res[2][1]);
-        // }
-        // if (gl_GlobalInvocationID.x == 0) {
-        //     debugPrintfEXT("message %f %f %f |%f %f %f \n", rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2]);
-        // }
-        // if (gl_GlobalInvocationID.x == 0) {
-        //     debugPrintfEXT("message %f %f %f |%f  \n", q[0], q[1], q[2], q[3]);
-        // }
-
-        // if (gl_GlobalInvocationID.x == 0) {
-        //     debugPrintfEXT("message %f %f %f |scale  %f %f %f  |%f %f %f  |%f %f %f  \n",
-        //    points[gl_GlobalInvocationID.x].pos[0],
-        //    points[gl_GlobalInvocationID.x].pos[1],
-        //    points[gl_GlobalInvocationID.x].pos[2],
-        //    points[gl_GlobalInvocationID.x].scale[0],
-        //    points[gl_GlobalInvocationID.x].scale[1],
-        //    points[gl_GlobalInvocationID.x].scale[2],
-
-        //    points[gl_GlobalInvocationID.x].conv3d[0][0],
-        //    points[gl_GlobalInvocationID.x].conv3d[0][1],
-        //    points[gl_GlobalInvocationID.x].conv3d[0][2],
-        //    points[gl_GlobalInvocationID.x].conv3d[1][0],
-        //    points[gl_GlobalInvocationID.x].conv3d[1][1],
-        //    points[gl_GlobalInvocationID.x].conv3d[1][2]);
-        // }
-
         if (gl_GlobalInvocationID.x == 0) {
             debugPrintfEXT(
                 "message %f %f %f  | %f %f %f | %f %f %f  |%f %f %f  \n",

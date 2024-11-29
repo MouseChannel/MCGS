@@ -5,6 +5,10 @@ layout(binding = e_point_count) buffer Info
 {
     uint all_count;
 };
+layout(binding = e_visiable_count) buffer _visiable_count
+{
+    uint visiable_count;
+};
 layout(std430, binding = e_instance_value) readonly buffer InstanceIndex
 {
     uint index[];
@@ -21,7 +25,7 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     uint id = gl_GlobalInvocationID.x;
-    if (id < all_count) {
+    if (id < visiable_count) {
         inverse_i[index[id]] = int(id);
     }
 }

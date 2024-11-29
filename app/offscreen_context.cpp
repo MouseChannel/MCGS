@@ -66,7 +66,9 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
 
     PASS.resize(2);
     {
+        PASS[1] = std::make_shared<GSContext>("C:/Users/moche/project/gs/gaussian-splatting/output/80127b2a-4/point_cloud/iteration_30000/point_cloud.ply");
         PASS[1] = std::make_shared<GSContext>("point_cloud.ply");
+
         PASS[1]->prepare();
     }
     {
@@ -81,7 +83,7 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
 
         {
             auto swapchain_renderTarget = graphic_context->AddSwapchainRenderTarget();
-            // auto depth_renderTarget = graphic_context->AddDepthRenderTarget();
+            auto depth_renderTarget = graphic_context->AddDepthRenderTarget();
 
             {
                 graphic_context->descriptorSets.resize(DESCRIPTORSET_COUNT);
@@ -98,7 +100,6 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
                 }
             }
 
-            // target_texture.reset(new Texture("assets/icon.png"));
 
             {
                 graphic_context->descriptorSets[MAIN]->AddBufferDescriptorTarget(std::reinterpret_pointer_cast<GSContext>(PASS[1])->instance_buffer,
@@ -114,7 +115,7 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
             {
                 auto mainPass = graphic_context->graphicPass[eMainPass];
                 mainPass->link_renderTarget({ swapchain_renderTarget },
-                                            {},
+                                            {depth_renderTarget},
                                             {},
                                             {});
                 auto uiPass = graphic_context->graphicPass[eUIPass];
@@ -230,7 +231,7 @@ std::shared_ptr<CommandBuffer> offscreen_context::BeginGraphicFrame()
                     vk::PipelineBindPoint ::eGraphics,
                     render_context->m_pipelines[eMainPipeline]->get_layout(),
                     0,
-                    { render_context->descriptorSets[MAIN]->get_handle()[render_context->get_cur_index_in_swapchain()] },
+                    { render_context->descriptorSets[MAIN]->get_handle()[render_context->get_cur_index()] },
                     {});
 
                 // cmd.bindVertexBuffers(0, offscreen_mesh->get_vertex_buffer()->get_handle(), { 0 });

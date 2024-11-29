@@ -20,11 +20,11 @@ using lowp_fvec4 = glm::lowp_fvec4;
 #define e_instance_point 1
 #define e_indir_cmd 2
 #define e_point_count 3
-#define e_camera 4
-#define e_instance_key 5
-#define e_instance_value 6
-#define e_inverse_index 7
-// #define e_instance_data 8
+#define e_visiable_count 4
+#define e_camera 5
+#define e_instance_key 6
+#define e_instance_value 7
+#define e_inverse_index 8
 struct PointCount {
     uint all_count;
 };

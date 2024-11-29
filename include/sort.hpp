@@ -7,21 +7,15 @@ namespace MCRT {
 class Buffer;
 class gpusort {
 public:
-    // struct PushConstant
-    // {
-    //     int pass;
-    //     restrict ElementCount elementCountReference;
-    //     restrict GlobalHistogram globalHistogramReference;
-    //     restrict PartitionHistogram partitionHistogramReference;
-    //     restrict Keys keysInReference;
-    // };
+
     gpusort() = default;
     void Init(uint all_point_count, std::shared_ptr<Buffer> indirect_buffer);
     void sort(vk::CommandBuffer cmd, std::shared_ptr<Buffer> key_buffer, std::shared_ptr<Buffer> value_buffer);
 
     // private:
     std::shared_ptr<Buffer> storage_buffer;
-    std::shared_ptr<Buffer> indirect_buffer;
+    std::shared_ptr<Buffer> visiable_count_buffer;
+
     VkDeviceSize elementCountSize = sizeof(uint32_t);
     VkDeviceSize histogramSize;
     VkDeviceSize inoutSize;
@@ -40,9 +34,5 @@ public:
     std::shared_ptr<ComputePass<>> spinePass;
     std::shared_ptr<ComputePass<>> downsweepKeyValuePass;
 
-    // std::shared_ptr<DescriptorSet> set;
-    // std::shared_ptr<DescriptorPool> setpool;
-
-    // std::shared_ptr<Compute_Pipeline> downsweepPipeline;
 };
 }
