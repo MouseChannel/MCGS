@@ -66,8 +66,9 @@ void offscreen_context::prepare(std::shared_ptr<Window> window)
 
     PASS.resize(2);
     {
-        PASS[1] = std::make_shared<GSContext>("C:/Users/moche/project/gs/gaussian-splatting/output/80127b2a-4/point_cloud/iteration_30000/point_cloud.ply");
+        // PASS[1] = std::make_shared<GSContext>("C:/Users/moche/project/gs/gaussian-splatting/output/80127b2a-4/point_cloud/iteration_30000/point_cloud.ply");
         PASS[1] = std::make_shared<GSContext>("point_cloud.ply");
+
 
         PASS[1]->prepare();
     }
